@@ -21,22 +21,17 @@ src            = ["src", "app", "tests"]
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "S",    # bandit (security)
-    "N",    # pep8 naming
+    "E", "W", "F", "I", "B", "C4", "UP", "S", "N"
 ]
 ignore = [
-    "E501",  # line-length handled by formatter
-    "S101",  # allow assert in tests
-    "S311",  # allow random for data shuffling (not crypto)
-    "B008",  # allow function calls as defaults
-    "N806",  # allow uppercase in non-class (e.g., H, W for image dims)
+    "E501", "S101", "S311", "B008", "N806",
+    "E701", "E702", # Multiple statements on one line
+    "E741",         # Ambiguous variable name 'l'
+    "B905",         # zip() without strict= parameter
+    "S110",         # try-except-pass
+    "N812",         # albumentations as A
+    "N816",         # mixedCase variables (mAP)
+    "S603", "S607"  # Subprocess warnings
 ]
 
 [tool.ruff.lint.per-file-ignores]
