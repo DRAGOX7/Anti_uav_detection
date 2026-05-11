@@ -22,22 +22,15 @@ src            = ["src", "app", "tests"]
 [tool.ruff.lint]
 # Select basic rules but be very forgiving on others
 select = ["E", "F", "W", "C4", "UP"]
+[tool.ruff.lint]
+select = ["E", "F", "W", "C4", "UP", "I", "B", "S", "N"]
 ignore = [
-    "E501", "E701", "E702", "E741", # Spacing and variable naming
-    "F401", "F841",                 # Unused imports/variables
-    "S101", "S110",                 # Asserts and try-except-pass
-    "B905", "B006", "B007",         # zip() and mutable defaults
-    "N806", "N812", "N816",         # Naming conventions (mAP, etc.)
-]
-ignore = [
-    "E501", "S101", "S311", "B008", "N806",
-    "E701", "E702", # Multiple statements on one line
-    "E741",         # Ambiguous variable name 'l'
-    "B905",         # zip() without strict= parameter
-    "S110",         # try-except-pass
-    "N812",         # albumentations as A
-    "N816",         # mixedCase variables (mAP)
-    "S603", "S607"  # Subprocess warnings
+    "E501", "E701", "E702", "E741", 
+    "F401", "F841",                 
+    "S101", "S110", "S311",         
+    "B905", "B006", "B007", "B008", 
+    "N806", "N812", "N816",
+    "S603", "S607"
 ]
 
 [tool.ruff.lint.per-file-ignores]
