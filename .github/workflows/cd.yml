@@ -1,7 +1,6 @@
----
 name: CD — Build · Push · Deploy
 
-"on":
+on:
   push:
     branches: [main]
     paths-ignore:
@@ -42,25 +41,29 @@ jobs:
         run: |
           mkdir -p app/model_weights
           touch app/model_weights/.placeholder
+
           python - <<'EOF'
           import mlflow
           import os
 
+          # Helper function to prevent repetitive indentation issues
+          def set_out(name, val):
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write(f"{name}={val}\n")
+
           tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "")
           if not tracking_uri:
               print("No MLFLOW_TRACKING_URI set — skipping model pull.")
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                  f.write("version=local\n")
+              set_out("version", "local")
               exit(0)
 
-          mlflow.set_tracking_uri(tracking_uri)
-          client = mlflow.MlflowClient()
-
-          model_name = "anti-uav-yolov11s"
           try:
-                versions = client.get_latest_versions(
-                  model_name, stages=["Production"]
-                )
+              mlflow.set_tracking_uri(tracking_uri)
+              client = mlflow.MlflowClient()
+              model_name = "anti-uav-yolov11s"
+              
+              versions = client.get_latest_versions(model_name, stages=["Production"])
+              
               if versions:
                   v = versions[0]
                   print(f"Found Production model: {model_name} v{v.version}")
@@ -69,16 +72,13 @@ jobs:
                       dst_path="app/model_weights",
                   )
                   print(f"Downloaded to: {local_path}")
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write(f"version={v.version}\n")
+                  set_out("version", v.version)
               else:
                   print("No Production model found — using bundled weights.")
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write("version=local\n")
+                  set_out("version", "local")
           except Exception as e:
               print(f"MLflow unavailable: {e}. Using bundled weights.")
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                  f.write("version=local\n")
+              set_out("version", "local")
           EOF
 
       - name: Upload Model Artifact
@@ -194,8 +194,7 @@ jobs:
         run: |
           echo "Waiting 30s for deployment to stabilise..."
           sleep 30
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ vars.APP_URL }}/healthz" || echo "000")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.APP_URL }}/healthz" || echo "000")
           if [[ "$STATUS" != "200" ]]; then
             echo "Health check failed — got HTTP $STATUS"
             exit 1
