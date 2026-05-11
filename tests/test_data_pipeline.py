@@ -78,7 +78,7 @@ class TestLabelHelpers:
 
     def test_is_positive_with_content(self, tmp_path):
         # REMOVED the underscore from _is_positive
-        from src.data.split_data import is_positive  
+        from src.data.split_data import is_positive
         lbl = tmp_path / "pos.txt"
         lbl.write_text("0 0.5 0.5 0.1 0.1\n")
         assert is_positive(lbl) is True
@@ -96,7 +96,7 @@ class TestLabelHelpers:
         from src.data.download_dataset import count_images
         for name in ("a.jpg", "b.jpeg", "c.PNG", "d.txt", "e.mp4"):
             (tmp_path / name).write_text("x")
-        assert count_images(tmp_path) == 3 
+        assert count_images(tmp_path) == 3
 
     def test_count_labels(self, tmp_path):
         # REMOVED the underscore from _count_labels
