@@ -1,0 +1,4 @@
+Combo,Optimizer,LR,Batch,ImgSz,WD,val/mAP50,val/mAP50-95
+HP1 — Baseline,SGD,1e-3,4,640,5e-4,0.9014,0.5562
+HP2 ,AdamW,1e-4,4,640,1e-4,0.9107,0.5751
+HP3 — Large input,AdamW,1e-4,4,1024,1e-4,0.9194,0.5973

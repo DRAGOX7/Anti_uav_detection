@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#FFB300"          # Warning Amber/Orange
+backgroundColor = "#0D0D0D"       # Pitch black
+secondaryBackgroundColor = "#1A1A1A" # Charcoal sidebar
+textColor = "#FFFFFF"             # Pure white text
+font = "sans serif"

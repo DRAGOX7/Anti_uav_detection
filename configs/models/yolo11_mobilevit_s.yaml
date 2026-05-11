@@ -1,0 +1,24 @@
+# Minimal YOLO-style detector with a MobileViT-S backbone.
+#
+# This model is intentionally lightweight: MobileViT provides 3 multi-scale features,
+# which are split with Index and fed directly into Detect.
+#
+# Pretrained weights are handled by timm inside MobileViTFeatures.
+
+nc: 1
+
+backbone:
+  # [from, repeats, module, args]
+  # MobileViTFeatures returns 3 feature maps (list[Tensor])
+  # Use strides 8/16/32 (more YOLO-like)
+  - [-1, 1, MobileViTFeatures, [mobilevit_s, True, [2, 3, 4]]]
+
+head:
+  # Split multi-scale features out of the list
+  # Index YAML args are [output_channels, index]
+  - [0, 1, Index, [96, 0]]
+  - [0, 1, Index, [128, 1]]
+  - [0, 1, Index, [640, 2]]
+
+  # Detect head consumes three scales
+  - [[1, 2, 3], 1, Detect, [nc]]

@@ -1,0 +1,20 @@
+# Ignore datasets and massive media
+data/
+*.mp4
+*.MOV
+*.jpg
+
+# Ignore ML model weights (unless they are very small Nano models)
+runs/
+*.pt
+*.onnx
+
+# Ignore Python cache and environments
+__pycache__/
+.venv/
+.env
+
+# Ignore MLflow tracking data
+mlruns/
+mlartifacts/
+.trash/

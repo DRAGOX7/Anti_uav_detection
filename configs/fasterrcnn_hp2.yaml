@@ -1,0 +1,36 @@
+amp: true
+architecture: "fasterrcnn" # Fixed from yolov11
+batch_size: 4
+cache: false
+conf_threshold: 0.001
+dataset_yaml: data/dataset.yaml
+degrees: 0.0
+device: "0"
+epochs: 15
+erasing: 0.4
+experiment_name: rtdetr-anti-uav # Ensure this aligns with MLflow if tracking
+fliplr: 0.5
+flipud: 0.0
+hp_combination: hp2
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+imgsz: 640
+iou_threshold: 0.6
+lr: 1.0e-04 # Increased for AdamW
+lrf: 0.01
+mixup: 0.0
+model_name: "fasterrcnn_resnet50_fpn"
+momentum: 0.9
+mosaic: 0.5
+optimizer: AdamW
+output_dir: runs/train
+patience: 50
+pretrained: true
+save_period: 10
+scale: 0.5
+seed: 42
+translate: 0.1
+warmup_epochs: 1.0 # Reduced due to 15 total epochs
+weight_decay: 0.0001
+workers: 2

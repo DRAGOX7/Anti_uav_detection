@@ -1,0 +1,74 @@
+# ============================================================
+# docker/Dockerfile.serve
+# ============================================================
+# Lightweight Streamlit serving image (no CUDA required).
+# Used by docker-compose.yml and GitHub Actions CD.
+#
+# Build:  docker build -f docker/Dockerfile.serve -t anti-uav-app .
+# Run:    docker run -p 8501:8501 anti-uav-app
+# ============================================================
+
+FROM python:3.11-slim
+
+LABEL org.opencontainers.image.title="Anti-UAV Drone Detection App"
+LABEL org.opencontainers.image.description="Streamlit UI for YOLOv11/RT-DETR drone detection"
+LABEL org.opencontainers.image.source="https://github.com/your-org/anti-uav-detection"
+
+# Build arguments (injected by GitHub Actions CD)
+ARG GIT_SHA=unknown
+ARG MODEL_VERSION=local
+ENV GIT_SHA=${GIT_SHA}
+ENV MODEL_VERSION=${MODEL_VERSION}
+
+# System dependencies for OpenCV headless
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Non-root user for security
+RUN useradd -m -u 1000 appuser
+
+WORKDIR /app
+
+# Install Python dependencies (CPU-only torch for inference)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir \
+        ultralytics streamlit streamlit-option-menu \
+        mlflow plotly opencv-python-headless pillow \
+        numpy pandas pyyaml
+
+# Copy application code
+COPY app/         ./app/
+COPY src/         ./src/
+COPY configs/     ./configs/
+
+# Copy pre-downloaded model weights (if available)
+COPY --chown=appuser:appuser app/model_weight[s]/ ./app/model_weights/
+
+# Health check endpoint — Streamlit exposes /_stcore/health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+USER appuser
+
+EXPOSE 8501
+
+# Streamlit configuration
+ENV STREAMLIT_SERVER_PORT=8501 \
+    STREAMLIT_SERVER_HEADLESS=true \
+    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
+    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \
+    STREAMLIT_THEME_BASE=light
+
+CMD ["streamlit", "run", "app/streamlit_app.py", \
+     "--server.port=8501", \
+     "--server.headless=true", \
+     "--server.fileWatcherType=none"]

@@ -1,0 +1,66 @@
+# ============================================================
+# Anti-UAV Drone Detection System — Requirements
+# ============================================================
+# Install with: pip install -r requirements.txt
+#
+# GPU training strongly recommended.
+# Tested with Python 3.11, CUDA 12.1, PyTorch 2.2
+
+# ── Core deep learning ──────────────────────────────────────
+torch>=2.2.0
+torchvision>=0.17.0
+torchaudio>=2.2.0
+
+# ── Detection frameworks ────────────────────────────────────
+ultralytics>=8.2.0          # YOLOv11, YOLOv8, ByteTrack integration
+# For RT-DETR (choose one):
+# transformers>=4.40.0      # HuggingFace RT-DETR (easier)
+# OR use ultralytics RT-DETR (already included in ultralytics>=8.2)
+
+# ── Tracking ────────────────────────────────────────────────
+# ByteTrack is bundled with ultralytics.
+# For standalone DeepSORT (optional):
+# deep-sort-realtime>=1.3.2
+
+# ── MLflow & experiment tracking ────────────────────────────
+mlflow>=2.12.0
+mlflow[extras]
+
+# ── Hyperparameter optimisation ─────────────────────────────
+optuna>=3.6.0
+optuna-integration[mlflow]>=3.6.0
+
+# ── Data & utilities ────────────────────────────────────────
+numpy>=1.26.0
+pandas>=2.2.0
+pillow>=10.3.0
+opencv-python-headless>=4.9.0
+albumentations>=1.4.0           # augmentation pipeline
+pyyaml>=6.0.1
+tqdm>=4.66.0
+roboflow>=1.1.0                  # Roboflow dataset download
+
+# ── Lightweight backbones (MobileViT) ───────────────────────
+timm>=1.0.0
+
+# ── Visualisation ───────────────────────────────────────────
+matplotlib>=3.8.0
+seaborn>=0.13.0
+plotly>=5.20.0
+
+# ── Streamlit UI ────────────────────────────────────────────
+streamlit>=1.33.0
+streamlit-option-menu>=0.3.12
+
+# ── Evaluation metrics ──────────────────────────────────────
+pycocotools>=2.0.7               # COCO-style mAP computation
+scikit-learn>=1.4.0
+
+# ── Notebooks ───────────────────────────────────────────────
+jupyter>=1.0.0
+ipywidgets>=8.1.0
+ipykernel>=6.29.0
+
+# ── Code quality (also in requirements-dev.txt) ─────────────
+# Listed here so Streamlit Cloud can run quality checks
+ruff>=0.4.0

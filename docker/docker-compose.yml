@@ -1,0 +1,61 @@
+# ============================================================
+# docker-compose.yml
+# ============================================================
+# Spins up the full local dev environment:
+#   - Streamlit app     → http://localhost:8501
+#   - MLflow UI         → http://localhost:5000
+#
+# Usage:
+#   docker-compose up            # start both services
+#   docker-compose up app        # Streamlit only
+#   docker-compose up mlflow     # MLflow only
+#   docker-compose down          # stop and remove containers
+#   docker-compose logs -f app   # follow Streamlit logs
+# ============================================================
+
+services:
+  # ── MLflow Tracking Server ───────────────────────────────────────────
+  mlflow:
+    image: python:3.11-slim
+    container_name: anti-uav-mlflow
+    command: sh -c "pip install mlflow -q && mlflow server --backend-store-uri sqlite:////mlruns/mlflow.db --default-artifact-root /mlruns --host 0.0.0.0 --port 5000"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow/mlruns:/mlruns
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:5000/ping')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Streamlit Application ────────────────────────────────────────────
+  app:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.serve
+    container_name: anti-uav-app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount local model weights and data for development
+      - ./runs:/app/runs:ro
+      - ./data/splits:/app/data/splits:ro
+      - ./mlflow/mlruns:/mlruns:ro
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - STREAMLIT_SERVER_MAX_UPLOAD_SIZE=500
+    depends_on:
+      - mlflow
+
+volumes:
+  mlruns:
+    driver: local

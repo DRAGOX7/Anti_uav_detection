@@ -1,0 +1,36 @@
+amp: true
+architecture: "fasterrcnn"
+batch_size: 4
+cache: false
+conf_threshold: 0.001
+dataset_yaml: data/dataset.yaml
+degrees: 0.0
+device: "0"
+epochs: 10
+erasing: 0.4
+experiment_name: fasterrcnn-anti-uav
+fliplr: 0.5
+flipud: 0.0
+hp_combination: hp3
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+imgsz: 1024 # 🚨 INCREASED FROM 640: The core test of HP3
+iou_threshold: 0.6
+lr: 1.0e-04 # Kept stable for AdamW
+lrf: 0.01
+mixup: 0.0
+model_name: "fasterrcnn_resnet50_fpn"
+momentum: 0.9
+mosaic: 0.5
+optimizer: AdamW
+output_dir: runs/train
+patience: 15
+pretrained: true
+save_period: 5
+scale: 0.5
+seed: 42
+translate: 0.1
+warmup_epochs: 1.0
+weight_decay: 0.0001
+workers: 2

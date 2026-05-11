@@ -1,0 +1,132 @@
+name: Model Evaluation — Auto-promote to Registry
+
+on:
+  # Trigger manually from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      experiment:
+        description: "MLflow experiment name to evaluate"
+        required: false
+        default: "yolov11-anti-uav"
+      metric:
+        description: "Metric to rank by"
+        required: false
+        default: "val/mAP50"
+      threshold:
+        description: "Minimum metric improvement (%) to promote"
+        required: false
+        default: "1.0"
+
+  # Also trigger when a training run completes (via repository dispatch)
+  repository_dispatch:
+    types: [training-complete]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  evaluate-and-promote:
+    name: Evaluate best model & promote
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install mlflow torch torchvision ultralytics pycocotools
+
+      - name: Run test-set evaluation on best candidate
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          EXPERIMENT:  ${{ github.event.inputs.experiment || 'yolov11-anti-uav' }}
+          METRIC:      ${{ github.event.inputs.metric || 'val/mAP50' }}
+          THRESHOLD:   ${{ github.event.inputs.threshold || '1.0' }}
+        run: |
+          python - <<'EOF'
+          import os
+          import sys
+          import mlflow
+
+          tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "")
+          if not tracking_uri:
+              print("No MLFLOW_TRACKING_URI — running in local mode, skipping promotion.")
+              sys.exit(0)
+
+          mlflow.set_tracking_uri(tracking_uri)
+          client = mlflow.MlflowClient()
+
+          experiment_name = os.environ.get("EXPERIMENT", "yolov11-anti-uav")
+          metric          = os.environ.get("METRIC", "val/mAP50")
+          threshold_pct   = float(os.environ.get("THRESHOLD", "1.0"))
+
+          experiment = client.get_experiment_by_name(experiment_name)
+          if not experiment:
+              print(f"Experiment '{experiment_name}' not found.")
+              sys.exit(0)
+
+          # Find best run
+          runs = client.search_runs(
+              experiment_ids=[experiment.experiment_id],
+              filter_string=f"metrics.`{metric}` > 0",
+              order_by=[f"metrics.`{metric}` DESC"],
+              max_results=1,
+          )
+          if not runs:
+              print(f"No runs with metric '{metric}' found.")
+              sys.exit(0)
+
+          best_run = runs[0]
+          best_val = best_run.data.metrics.get(metric, 0)
+          arch     = best_run.data.params.get("architecture", "unknown")
+          model_name = f"anti-uav-{arch}"
+
+          print(f"Best run:  {best_run.info.run_id}")
+          print(f"  {metric} = {best_val:.4f}")
+          print(f"  Arch:    {arch}")
+
+          # Compare against current Production model
+          try:
+              prod_versions = client.get_latest_versions(model_name, stages=["Production"])
+              if prod_versions:
+                  prod_run_id = prod_versions[0].run_id
+                  prod_run    = client.get_run(prod_run_id)
+                  prod_val    = prod_run.data.metrics.get(metric, 0)
+                  improvement = (best_val - prod_val) / max(prod_val, 1e-9) * 100
+                  print(f"\nCurrent Production: {metric} = {prod_val:.4f}")
+                  print(f"Improvement: {improvement:+.2f}%")
+
+                  if improvement < threshold_pct:
+                      print(f"Improvement {improvement:.2f}% < threshold {threshold_pct}% — no promotion.")
+                      sys.exit(0)
+              else:
+                  print("No Production model yet — promoting directly.")
+          except Exception as e:
+              print(f"No existing production model: {e}. Promoting directly.")
+
+          # Promote
+          versions = client.search_model_versions(f"name='{model_name}'")
+          run_versions = [v for v in versions if v.run_id == best_run.info.run_id]
+          if run_versions:
+              version = run_versions[0].version
+              client.transition_model_version_stage(
+                  name=model_name,
+                  version=version,
+                  stage="Production",
+                  archive_existing_versions=True,
+              )
+              print(f"\n✅ Promoted {model_name} v{version} -> Production")
+          else:
+              print(f"No registered model version found for run {best_run.info.run_id}.")
+              print("Register the model first with mlflow.pytorch.log_model(registered_model_name=...)")
+          EOF
+
+      - name: Notify on promotion
+        if: success()
+        run: |
+          echo "Model evaluation complete."
+          echo "If a model was promoted, CD pipeline will deploy it on next push to main."

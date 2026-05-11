@@ -1,0 +1,7 @@
+Source,Split,Images,Labels,Annotations,License
+DUT Anti-UAV,train,5200,5200,5243,MIT
+DUT Anti-UAV,val,2600,2600,2621,MIT
+DUT Anti-UAV,test,2200,2200,2245,MIT
+Roboflow / drone-detection-primary,all,3217,3219,3546,CC BY 4.0 / MIT
+Roboflow / drone-detection-secondary,all,3311,3313,3671,CC BY 4.0 / MIT
+MERGED POOL,pre-split,11728,11728,12406,MIT / CC BY 4.0

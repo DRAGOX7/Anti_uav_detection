@@ -1,0 +1,4 @@
+Combo,Optimizer,LR,Batch,ImgSz,Mixup,val/mAP50,val/mAP50-95,val/Precision,val/Recall
+HP1 — Baseline,SGD,1e-2,16,640,0.0,0,0,0,0
+HP2 — Best ⭐,AdamW,1e-3,16,640,0.1,0,0,0,0
+HP3 — High-res,AdamW,1e-3,8,1280,0.1,0,0,0,0

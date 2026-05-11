@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^(src|app|tests)/
+      - id: ruff-format
+        files: ^(src|app|tests)/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=5000]      # block files > 5MB (model weights shouldn't be committed)
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key    # security: no private keys in repo
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml, --severity-level, medium]
+        files: ^src/
