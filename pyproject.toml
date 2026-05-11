@@ -13,15 +13,14 @@ readme      = "README.md"
 where = ["."]
 include = ["src*"]
 
+# ... (Keep the [project] and [tool.setuptools] sections as they are)
+
 # ── Ruff (linting + formatting) ─────────────────────────────────────────
 [tool.ruff]
 line-length    = 100
 target-version = "py311"
 src            = ["src", "app", "tests"]
 
-[tool.ruff.lint]
-# Select basic rules but be very forgiving on others
-select = ["E", "F", "W", "C4", "UP"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "C4", "UP", "I", "B", "S", "N"]
 ignore = [
@@ -36,6 +35,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*"     = ["S101", "S603"]
 "notebooks/*" = ["E402", "F401", "F811"]
+
+# ... (Keep the rest of the file as is)
 
 [tool.ruff.format]
 quote-style = "double"
