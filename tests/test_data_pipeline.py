@@ -114,36 +114,34 @@ class TestLabelHelpers:
 class TestCocoToYoloConversion:
     """Tests for COCO JSON -> YOLO .txt conversion."""
 
-    def _make_coco_json(self, img_dir: Path, lbl_dir: Path, n: int = 5) -> Path:
-        """Create a minimal COCO annotations.json."""
-        images = [
-            {"id": i, "file_name": f"img_{i:04d}.jpg", "width": 640, "height": 480}
-            for i in range(n)
-        ]
-        annotations = [
-            {
-                "id": i,
-                "image_id": i,
-                "category_id": 0,
-                "bbox": [100.0, 100.0, 50.0, 30.0],  # x,y,w,h COCO style
-            }
-            for i in range(n)
-        ]
-        coco = {"images": images, "annotations": annotations, "categories": [{"id": 0}]}
-        json_path = img_dir.parent / "annotations.json"
-        json_path.write_text(json.dumps(coco))
-        return json_path
+    def _write_voc_xml(self, xml_path: Path, filename: str) -> None:
+        content = (
+            "<annotation>"
+            f"<filename>{filename}</filename>"
+            "<size><width>640</width><height>480</height></size>"
+            "<object><name>drone</name>"
+            "<bndbox><xmin>100</xmin><ymin>100</ymin>"
+            "<xmax>150</xmax><ymax>130</ymax></bndbox>"
+            "</object>"
+            "</annotation>"
+        )
+        xml_path.write_text(content)
 
     def test_converts_coco_to_yolo(self, tmp_path):
         from src.data.download_dataset import convert_dut_labels_to_yolo
 
         # Build fake DUT structure
         split_root = tmp_path / "train"
-        img_dir = split_root / "images"
+        img_dir = split_root / "img"
+        xml_dir = split_root / "xml"
         lbl_dir = split_root / "labels"
         img_dir.mkdir(parents=True)
-        lbl_dir.mkdir(parents=True)
-        self._make_coco_json(img_dir, lbl_dir, n=5)
+        xml_dir.mkdir(parents=True)
+
+        for i in range(5):
+            name = f"img_{i:04d}.jpg"
+            (img_dir / name).write_bytes(b"fake")
+            self._write_voc_xml(xml_dir / f"img_{i:04d}.xml", name)
 
         convert_dut_labels_to_yolo(tmp_path)
 
@@ -156,11 +154,16 @@ class TestCocoToYoloConversion:
         from src.data.download_dataset import convert_dut_labels_to_yolo
 
         split_root = tmp_path / "train"
-        img_dir = split_root / "images"
+        img_dir = split_root / "img"
+        xml_dir = split_root / "xml"
         lbl_dir = split_root / "labels"
         img_dir.mkdir(parents=True)
-        lbl_dir.mkdir(parents=True)
-        self._make_coco_json(img_dir, lbl_dir, n=3)
+        xml_dir.mkdir(parents=True)
+
+        for i in range(3):
+            name = f"img_{i:04d}.jpg"
+            (img_dir / name).write_bytes(b"fake")
+            self._write_voc_xml(xml_dir / f"img_{i:04d}.xml", name)
 
         convert_dut_labels_to_yolo(tmp_path)
 
@@ -270,12 +273,11 @@ class TestStratifiedSplit:
         shutil.copytree(tmp_path / "synth" / "labels", lbl_dir)
 
         paths1 = run_split(tmp_path, seed=42)
+        first_contents = {n: paths1[n].read_text() for n in ("train", "val", "test")}
         paths2 = run_split(tmp_path, seed=99)
 
         # At least one split should differ
-        diffs = sum(
-            paths1[n].read_text() != paths2[n].read_text() for n in ("train", "val", "test")
-        )
+        diffs = sum(first_contents[n] != paths2[n].read_text() for n in ("train", "val", "test"))
         assert diffs > 0
 
     def test_dataset_yaml_created(self, tmp_path):
@@ -335,7 +337,7 @@ class TestStratifiedSplit:
         """Positive rate in each split should be close to the overall rate."""
         import shutil
 
-        from src.data.split_data import _is_positive, run_split
+        from src.data.split_data import is_positive, run_split
 
         img_dir = tmp_path / "merged" / "images"
         lbl_dir = tmp_path / "merged" / "labels"
@@ -350,7 +352,7 @@ class TestStratifiedSplit:
             img_paths = [Path(l) for l in txt_path.read_text().splitlines() if l.strip()]
             if not img_paths:
                 continue
-            pos = sum(1 for p in img_paths if _is_positive(lbl_dir / f"{p.stem}.txt"))
+            pos = sum(1 for p in img_paths if is_positive(lbl_dir / f"{p.stem}.txt"))
             rate = pos / len(img_paths)
             # Should be within ±10% of 80%
             assert 0.70 <= rate <= 0.90, (
