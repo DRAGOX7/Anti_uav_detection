@@ -148,7 +148,7 @@ def _download_with_progress(url: str, dest: Path) -> Path:
     else:
         import urllib.request
         log.info("Downloading (urllib): %s", url)
-        with urllib.request.urlopen(url) as response:  # noqa: S310
+        with urllib.request.urlopen(url) as response:  # nosec B310
             total = int(response.headers.get("Content-Length", 0))
             downloaded = 0
             with open(dest, "wb") as f:
@@ -178,11 +178,11 @@ def _unzip(archive: Path, dest: Path) -> Path:
     return dest
 
 
-def _count_images(folder: Path, exts: Tuple[str, ...] = (".jpg", ".jpeg", ".png")) -> int:
+def count_images(folder: Path, exts: Tuple[str, ...] = (".jpg", ".jpeg", ".png")) -> int:
     return sum(1 for p in folder.rglob("*") if p.suffix.lower() in exts)
 
 
-def _count_labels(folder: Path) -> int:
+def count_labels(folder: Path) -> int:
     return sum(1 for p in folder.rglob("*.txt"))
 
 
@@ -209,7 +209,7 @@ def download_dut_detection(force: bool = False) -> Path:
     unpacked = dest_root / "DUT-Anti-UAV-Detection"
 
     if unpacked.exists() and not force:
-        n = _count_images(unpacked)
+        n = count_images(unpacked)
         log.info("DUT detection already downloaded (%d images). Use --force to re-download.", n)
         return unpacked
 
@@ -223,7 +223,7 @@ def download_dut_detection(force: bool = False) -> Path:
         log.warning("Direct download failed (%s). Trying git clone fallback...", exc)
         _dut_git_clone_fallback(dest_root)
 
-    n = _count_images(unpacked)
+    n = count_images(unpacked)
     log.info("DUT detection ready: %d images in %s", n, unpacked)
     return unpacked
 
@@ -346,7 +346,7 @@ def download_roboflow(force: bool = False) -> List[Path]:
         dest = DIRS["roboflow_raw"] / ds["name"]
 
         if dest.exists() and not force:
-            n = _count_images(dest)
+            n = count_images(dest)
             log.info("Roboflow '%s' already downloaded (%d images).", ds["name"], n)
             downloaded_paths.append(dest)
             continue
@@ -356,7 +356,7 @@ def download_roboflow(force: bool = False) -> List[Path]:
             project = rf.workspace(ds["workspace"]).project(ds["project"])
             version = project.version(ds["version"])
             version.download(ds["format"], location=str(dest))
-            n = _count_images(dest)
+            n = count_images(dest)
             log.info("Downloaded %d images -> %s", n, dest)
             downloaded_paths.append(dest)
         except Exception as exc:
@@ -405,7 +405,7 @@ def convert_dut_labels_to_yolo(dut_root: Path) -> None:
         converted = 0
         for xml_file in xml_dir.glob("*.xml"):
             try:
-                tree = ET.parse(xml_file)
+                tree = ET.parse(xml_file)  # nosec B314
                 root = tree.getroot()
                 size = root.find("size")
                 W = float(size.find("width").text)
@@ -577,8 +577,8 @@ def verify_download() -> bool:
     ok = True
 
     # Check merged pool
-    n_img = _count_images(DIRS["merged_images"])
-    n_lbl = _count_labels(DIRS["merged_labels"])
+    n_img = count_images(DIRS["merged_images"])
+    n_lbl = count_labels(DIRS["merged_labels"])
     log.info("Merged pool   : %6d images  |  %6d labels", n_img, n_lbl)
     if n_img == 0:
         log.error("No merged images found — run with --all first.")

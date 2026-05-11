@@ -50,7 +50,7 @@ DATA_ROOT = Path(os.environ.get("DATA_ROOT", "data"))
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _is_positive(label_path: Path) -> bool:
+def is_positive(label_path: Path) -> bool:
     """Return True if the label file contains at least one annotation."""
     if not label_path.exists():
         return False
@@ -86,8 +86,8 @@ def _stratified_split(
 
     Returns three lists of (image_path, label_path | None).
     """
-    positives = [(i, l) for i, l in pairs if l is not None and _is_positive(l)]
-    negatives = [(i, l) for i, l in pairs if not (l is not None and _is_positive(l))]
+    positives = [(i, l) for i, l in pairs if l is not None and is_positive(l)]
+    negatives = [(i, l) for i, l in pairs if not (l is not None and is_positive(l))]
 
     rng = random.Random(seed)
     rng.shuffle(positives)
@@ -199,7 +199,7 @@ def _print_split_stats(
     test:  List,
 ) -> None:
     def _stats(pairs, name):
-        pos = sum(1 for _, l in pairs if l is not None and _is_positive(l))
+        pos = sum(1 for _, l in pairs if l is not None and is_positive(l))
         neg = len(pairs) - pos
         log.info(
             "  %-6s  total=%5d  positives=%5d (%4.1f%%)  negatives=%5d (%4.1f%%)",
@@ -333,9 +333,9 @@ def run_split(
         "n_total":     n_train + n_val + n_test,
         "used_dut_fixed_splits": use_dut_fixed_splits,
         "positives": {
-            "train": sum(1 for _, l in train if l and _is_positive(l)),
-            "val":   sum(1 for _, l in val   if l and _is_positive(l)),
-            "test":  sum(1 for _, l in test  if l and _is_positive(l)),
+            "train": sum(1 for _, l in train if l and is_positive(l)),
+            "val":   sum(1 for _, l in val   if l and is_positive(l)),
+            "test":  sum(1 for _, l in test  if l and is_positive(l)),
         },
     }
     meta_path = splits_dir / "split_metadata.json"
