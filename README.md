@@ -1,8 +1,12 @@
 ---
 title: Anti UAV Detection
+emoji: 🛸
+colorFrom: indigo
+colorTo: blue
 sdk: docker
 dockerfile: docker/Dockerfile.serve
 app_port: 8501
+pinned: false
 ---
 
 # 🛡️ Anti-UAV Drone Detection & Tracking System
