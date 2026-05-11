@@ -5,19 +5,27 @@
 
 ---
 
+---
+
+title: Anti UAV Detection
+sdk: docker
+dockerfile: docker/Dockerfile.serve
+
+---
+
 ## Overview
 
 Real-time detection, classification, and tracking of hostile UAVs (drones) in RGB video and images using YOLOv11, RT-DETR, and ByteTrack. Full MLOps pipeline with MLflow experiment tracking, CI/CD via GitHub Actions, and a 4-page Streamlit interface.
 
-| Component | Detail |
-|---|---|
-| **Primary architecture** | YOLOv11-S (one-stage CNN) |
-| **Secondary architecture** | RT-DETR-R50 (transformer) |
-| **Baseline** | YOLOv8-M |
-| **Tracker** | ByteTrack (bonus +5 marks) |
-| **Training data** | DUT Anti-UAV (10K) + Roboflow (2–5K) |
-| **Experiment tracking** | MLflow |
-| **CI/CD** | GitHub Actions (lint → security → test → build → deploy) |
+| Component                  | Detail                                                   |
+| -------------------------- | -------------------------------------------------------- |
+| **Primary architecture**   | YOLOv11-S (one-stage CNN)                                |
+| **Secondary architecture** | RT-DETR-R50 (transformer)                                |
+| **Baseline**               | YOLOv8-M                                                 |
+| **Tracker**                | ByteTrack (bonus +5 marks)                               |
+| **Training data**          | DUT Anti-UAV (10K) + Roboflow (2–5K)                     |
+| **Experiment tracking**    | MLflow                                                   |
+| **CI/CD**                  | GitHub Actions (lint → security → test → build → deploy) |
 
 ---
 
@@ -165,21 +173,21 @@ All 3 HP combos per architecture are defined in `configs/`. Generate them with:
 python generate_configs.py
 ```
 
-| Combo | Optimizer | LR | Batch | ImgSz | Mosaic | Mixup | Purpose |
-|---|---|---|---|---|---|---|---|
-| HP1 | SGD | 1e-2 | 16 | 640 | ✓ | ✗ | Baseline |
-| HP2 | AdamW | 1e-3 | 16 | 640 | ✓ | ✓ | **Best** |
-| HP3 | AdamW | 1e-3 | 8 | 1280 | ✓ | ✓ | High-res |
+| Combo | Optimizer | LR   | Batch | ImgSz | Mosaic | Mixup | Purpose  |
+| ----- | --------- | ---- | ----- | ----- | ------ | ----- | -------- |
+| HP1   | SGD       | 1e-2 | 16    | 640   | ✓      | ✗     | Baseline |
+| HP2   | AdamW     | 1e-3 | 16    | 640   | ✓      | ✓     | **Best** |
+| HP3   | AdamW     | 1e-3 | 8     | 1280  | ✓      | ✓     | High-res |
 
 ---
 
 ## Dataset
 
-| Split | Source | Images |
-|---|---|---|
-| Train | DUT Anti-UAV + Roboflow | ~8,400 |
-| Val | Merged pool (stratified) | ~1,800 |
-| Test | Merged pool (held-out) | ~1,800 |
+| Split         | Source                     | Images    |
+| ------------- | -------------------------- | --------- |
+| Train         | DUT Anti-UAV + Roboflow    | ~8,400    |
+| Val           | Merged pool (stratified)   | ~1,800    |
+| Test          | Merged pool (held-out)     | ~1,800    |
 | Tracking eval | DUT 20 RGB video sequences | 20 videos |
 
 ---

@@ -9,8 +9,8 @@ on:
       - "reports/**"
 
 env:
-  REGISTRY:    ghcr.io
-  IMAGE_NAME:  ${{ github.repository }}/anti-uav-app
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/anti-uav-app
   PYTHON_VERSION: "3.11"
 
 jobs:
@@ -128,24 +128,24 @@ jobs:
       - uses: actions/checkout@v4
 
       # ── Option A: Deploy to Hugging Face Spaces ──────────────────────
-      # Uncomment this block to push to HF Spaces
-      # - name: Push to HF Space
-      #   env:
-      #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      #     HF_SPACE: your-username/anti-uav-detection
-      #   run: |
-      #     pip install huggingface_hub
-      #     python -c "
-      #     from huggingface_hub import HfApi
-      #     api = HfApi()
-      #     api.upload_folder(
-      #         folder_path='.',
-      #         repo_id='${{ env.HF_SPACE }}',
-      #         repo_type='space',
-      #         token='${{ env.HF_TOKEN }}',
-      #         ignore_patterns=['data/**', 'runs/**', '.git/**'],
-      #     )
-      #     "
+      - name: Push to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          # UPDATED: Changed from 'your-username' to your actual HF account
+          HF_SPACE: Dragox2005/anti-uav-detection
+        run: |
+          pip install huggingface_hub
+          python -c "
+          from huggingface_hub import HfApi
+          api = HfApi()
+          api.upload_folder(
+              folder_path='.',
+              repo_id='${{ env.HF_SPACE }}',
+              repo_type='space',
+              token='${{ env.HF_TOKEN }}',
+              ignore_patterns=['data/**', 'runs/**', '.git/**'],
+          )
+          "
 
       # ── Option B: Deploy to Cloud Run ────────────────────────────────
       # Uncomment for GCP Cloud Run
