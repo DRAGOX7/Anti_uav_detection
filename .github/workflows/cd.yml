@@ -86,7 +86,7 @@ jobs:
         with:
           name: trained-model
           path: app/model_weights/
-          if-no-files-found: continue
+          if-no-files-found: ignore
           retention-days: 1
 
   # ──────────────────────────────────────────────────────────────────────
