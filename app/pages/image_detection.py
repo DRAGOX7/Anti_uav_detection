@@ -33,17 +33,20 @@ def _load_model(weights_path: str, arch: str):
         return YOLO(weights_path)
 
 
-def _find_available_weights(runs_dir: Path) -> dict[str, Path]:
+def _find_available_weights(weights_dir: Path) -> dict[str, Path]:
     """
-    Scan runs/train/ for best.pt files.
+    Scan app/model_weights/ for .pt files.
     Returns { display_name: path } mapping.
     """
     weights = {}
-    if not runs_dir.exists():
+    if not weights_dir.exists():
         return weights
-    for pt in sorted(runs_dir.rglob("best.pt")):
-        # Parent folder name = experiment name (e.g. yolov11_hp2)
-        name = pt.parent.parent.name
+    for pt in sorted(weights_dir.rglob("*.pt")):
+        rel_parent = pt.parent.relative_to(weights_dir)
+        if rel_parent == Path("."):
+            name = pt.stem
+        else:
+            name = f"{rel_parent}/{pt.stem}"
         weights[name] = pt
     return weights
 
@@ -88,17 +91,17 @@ def render(project_root: Path, mlflow_uri: str) -> None:
     st.header("🖼️ Image Detection")
     st.caption("Upload a drone image and run detection with your trained model.")
 
-    runs_dir = project_root / "runs" / "train"
+    weights_dir = project_root / "app" / "model_weights"
 
     # ── Sidebar controls ─────────────────────────────────────────────────
     with st.sidebar:
         st.markdown("### Detection settings")
 
-        available = _find_available_weights(runs_dir)
+        available = _find_available_weights(weights_dir)
         if not available:
             st.warning(
-                "No trained models found in `runs/train/`.\n\n"
-                "Train a model first with `make train-yolo`."
+                "No trained models found in `app/model_weights/`.\n\n"
+                "Download or deploy the production model to this folder."
             )
             model_choice = None
             weights_path = None
@@ -124,7 +127,7 @@ def render(project_root: Path, mlflow_uri: str) -> None:
         return
 
     if model_choice is None:
-        st.error("No trained models available. Train a model first.")
+        st.error("No trained models available in `app/model_weights/`.")
         return
 
     # ── Load & display image ─────────────────────────────────────────────

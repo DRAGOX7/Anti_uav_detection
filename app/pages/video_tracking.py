@@ -391,12 +391,16 @@ def _load_model(weights_path: str, arch: str):
     return YOLO(weights_path)
 
 
-def _find_available_weights(runs_dir: Path) -> dict[str, Path]:
+def _find_available_weights(weights_dir: Path) -> dict[str, Path]:
     weights = {}
-    if not runs_dir.exists():
+    if not weights_dir.exists():
         return weights
-    for pt in sorted(runs_dir.rglob("best.pt")):
-        name = pt.parent.parent.name
+    for pt in sorted(weights_dir.rglob("*.pt")):
+        rel_parent = pt.parent.relative_to(weights_dir)
+        if rel_parent == Path("."):
+            name = pt.stem
+        else:
+            name = f"{rel_parent}/{pt.stem}"
         weights[name] = pt
     return weights
 
@@ -414,14 +418,17 @@ def render(project_root: Path, mlflow_uri: str) -> None:
         "using a 4-signal kinematic discriminator."
     )
 
-    runs_dir = project_root / "runs" / "train"
+    weights_dir = project_root / "app" / "model_weights"
 
     # ── Sidebar ──────────────────────────────────────────────────────────
     with st.sidebar:
         st.markdown("### Tracking settings")
-        available = _find_available_weights(runs_dir)
+        available = _find_available_weights(weights_dir)
         if not available:
-            st.warning("No trained models found. Run training notebooks first.")
+            st.warning(
+                "No trained models found in `app/model_weights/`. "
+                "Download or deploy the production model first."
+            )
             model_choice = None
             weights_path = None
         else:
@@ -480,7 +487,7 @@ def render(project_root: Path, mlflow_uri: str) -> None:
         return
 
     if model_choice is None:
-        st.error("No trained model found. Train a model first.")
+        st.error("No trained model found in `app/model_weights/`.")
         return
 
     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp_in:
