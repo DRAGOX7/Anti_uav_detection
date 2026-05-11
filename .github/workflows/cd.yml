@@ -40,7 +40,7 @@ jobs:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         run: |
           mkdir -p app/model_weights
-          touch app/model_weights/.placeholder
+          touch app/model_weights/placeholder.txt
 
           python - <<'EOF'
           import mlflow
