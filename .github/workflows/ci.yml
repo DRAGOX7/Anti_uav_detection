@@ -132,7 +132,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/Dockerfile.serve
+          file: Dockerfile
           push: false
           tags: anti-uav-app:ci-${{ github.sha }}
           cache-from: type=gha

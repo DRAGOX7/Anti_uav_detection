@@ -41,7 +41,7 @@ services:
   app:
     build:
       context: ../
-      dockerfile: docker/Dockerfile.serve
+      dockerfile: Dockerfile
     container_name: anti-uav-app
     ports:
       - "8501:8501"
