@@ -49,6 +49,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY app/         ./app/
 COPY src/         ./src/
 COPY configs/     ./configs/
+COPY assets/      ./assets/
 
 # Copy pre-downloaded model weights (if available)
 COPY --chown=appuser:appuser app/model_weight[s]/ ./app/model_weights/
