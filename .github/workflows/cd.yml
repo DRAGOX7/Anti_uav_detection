@@ -1,6 +1,7 @@
+---
 name: CD — Build · Push · Deploy
 
-on:
+"on":
   push:
     branches: [main]
     paths-ignore:
@@ -39,6 +40,8 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         run: |
+          mkdir -p app/model_weights
+          touch app/model_weights/.placeholder
           python - <<'EOF'
           import mlflow
           import os
@@ -55,7 +58,9 @@ jobs:
 
           model_name = "anti-uav-yolov11s"
           try:
-              versions = client.get_latest_versions(model_name, stages=["Production"])
+                versions = client.get_latest_versions(
+                  model_name, stages=["Production"]
+                )
               if versions:
                   v = versions[0]
                   print(f"Found Production model: {model_name} v{v.version}")
@@ -81,6 +86,7 @@ jobs:
         with:
           name: trained-model
           path: app/model_weights/
+          if-no-files-found: continue
           retention-days: 1
 
   # ──────────────────────────────────────────────────────────────────────
@@ -188,7 +194,8 @@ jobs:
         run: |
           echo "Waiting 30s for deployment to stabilise..."
           sleep 30
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.APP_URL }}/healthz" || echo "000")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ vars.APP_URL }}/healthz" || echo "000")
           if [[ "$STATUS" != "200" ]]; then
             echo "Health check failed — got HTTP $STATUS"
             exit 1
