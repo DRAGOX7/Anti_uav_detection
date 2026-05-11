@@ -3,6 +3,13 @@ data/
 *.mp4
 *.MOV
 *.jpg
+# Ignore the data, but keep the code
+src/data/*.zip
+src/data/*.csv
+src/data/*.jpg
+src/data/*.png
+# But DON'T ignore __init__.py
+!src/data/__init__.py
 
 # Ignore ML model weights (unless they are very small Nano models)
 runs/
