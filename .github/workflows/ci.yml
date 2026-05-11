@@ -99,7 +99,7 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          pytest tests/unit/ \
+          pytest tests/ \
             -v \
             --tb=short \
             --timeout=120 \
