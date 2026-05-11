@@ -22,7 +22,7 @@ Real-time detection, classification, and tracking of hostile UAVs (drones) in RG
 | **Secondary architecture** | RT-DETR-R50 (transformer)                                |
 | **Baseline**               | YOLOv8-M                                                 |
 | **Tracker**                | ByteTrack (bonus +5 marks)                               |
-| **Training data**          | DUT Anti-UAV (10K) + Roboflow (2–5K)                     |
+| **Training data**          | DUT Anti-UAV (10K) + Roboflow (2.5–5K)                   |
 | **Experiment tracking**    | MLflow                                                   |
 | **CI/CD**                  | GitHub Actions (lint → security → test → build → deploy) |
 
