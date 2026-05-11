@@ -1,15 +1,14 @@
+---
+title: Anti UAV Detection
+sdk: docker
+dockerfile: docker/Dockerfile.serve
+app_port: 8501
+---
+
 # 🛡️ Anti-UAV Drone Detection & Tracking System
 
 **Course:** AI447 Computer Vision — Spring 2025-2026
 **Task:** Developing a Computer Vision Deep Learning-based System
-
----
-
----
-
-title: Anti UAV Detection
-sdk: docker
-dockerfile: docker/Dockerfile.serve
 
 ---
 
