@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import random
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -23,6 +22,7 @@ from PIL import Image
 # ---------------------------------------------------------------------------
 # Helpers to build synthetic datasets
 # ---------------------------------------------------------------------------
+
 
 def _make_synthetic_dataset(
     root: Path,
@@ -68,39 +68,46 @@ def _make_synthetic_dataset(
 # Tests: download_dataset helpers
 # ---------------------------------------------------------------------------
 
+
 class TestLabelHelpers:
     """Tests for label-related utilities."""
 
     def test_is_positive_with_content(self, tmp_path):
         from src.data.download_dataset import _is_positive  # noqa: PLC0415
+
         lbl = tmp_path / "pos.txt"
         lbl.write_text("0 0.5 0.5 0.1 0.1\n")
         assert _is_positive(lbl) is True
 
     def test_is_positive_empty_file(self, tmp_path):
         from src.data.download_dataset import _is_positive
+
         lbl = tmp_path / "neg.txt"
         lbl.write_text("")
         assert _is_positive(lbl) is False
 
     def test_is_positive_whitespace_only(self, tmp_path):
         from src.data.download_dataset import _is_positive
+
         lbl = tmp_path / "ws.txt"
         lbl.write_text("   \n  \n")
         assert _is_positive(lbl) is False
 
     def test_is_positive_nonexistent(self, tmp_path):
         from src.data.download_dataset import _is_positive
+
         assert _is_positive(tmp_path / "ghost.txt") is False
 
     def test_count_images(self, tmp_path):
         from src.data.download_dataset import _count_images
+
         for name in ("a.jpg", "b.jpeg", "c.PNG", "d.txt", "e.mp4"):
             (tmp_path / name).write_text("x")
         assert _count_images(tmp_path) == 3  # jpg, jpeg, PNG
 
     def test_count_labels(self, tmp_path):
         from src.data.download_dataset import _count_labels
+
         for name in ("a.txt", "b.txt", "c.jpg"):
             (tmp_path / name).write_text("x")
         assert _count_labels(tmp_path) == 2
@@ -171,6 +178,7 @@ class TestCocoToYoloConversion:
 # Tests: split_data
 # ---------------------------------------------------------------------------
 
+
 class TestStratifiedSplit:
     """Tests for run_split function."""
 
@@ -184,6 +192,7 @@ class TestStratifiedSplit:
         _make_synthetic_dataset(tmp_path / "synth", 100, 80)
         # Copy to merged location
         import shutil
+
         shutil.copytree(tmp_path / "synth" / "images", img_dir)
         shutil.copytree(tmp_path / "synth" / "labels", lbl_dir)
 
@@ -195,20 +204,21 @@ class TestStratifiedSplit:
         )
 
         n_train = len(split_paths["train"].read_text().splitlines())
-        n_val   = len(split_paths["val"].read_text().splitlines())
-        n_test  = len(split_paths["test"].read_text().splitlines())
-        total   = n_train + n_val + n_test
+        n_val = len(split_paths["val"].read_text().splitlines())
+        n_test = len(split_paths["test"].read_text().splitlines())
+        total = n_train + n_val + n_test
 
         assert total == 100, f"Expected 100 total, got {total}"
         # Allow ±2 due to integer rounding
         assert abs(n_train - 70) <= 2, f"Train size off: {n_train}"
-        assert abs(n_val   - 15) <= 2, f"Val size off: {n_val}"
+        assert abs(n_val - 15) <= 2, f"Val size off: {n_val}"
 
     def test_no_overlap_between_splits(self, tmp_path):
         """No image should appear in more than one split."""
+        import shutil
+
         from src.data.split_data import run_split
 
-        import shutil
         img_dir = tmp_path / "merged" / "images"
         lbl_dir = tmp_path / "merged" / "labels"
         _make_synthetic_dataset(tmp_path / "synth", 60, 50)
@@ -227,15 +237,14 @@ class TestStratifiedSplit:
                 if a_name == b_name:
                     continue
                 overlap = a_set & b_set
-                assert not overlap, (
-                    f"Overlap between {a_name} and {b_name}: {overlap}"
-                )
+                assert not overlap, f"Overlap between {a_name} and {b_name}: {overlap}"
 
     def test_reproducibility(self, tmp_path):
         """Same seed must produce identical splits."""
+        import shutil
+
         from src.data.split_data import run_split
 
-        import shutil
         img_dir = tmp_path / "merged" / "images"
         lbl_dir = tmp_path / "merged" / "labels"
         _make_synthetic_dataset(tmp_path / "synth", 50, 40)
@@ -252,9 +261,10 @@ class TestStratifiedSplit:
 
     def test_different_seeds_produce_different_splits(self, tmp_path):
         """Different seeds should produce different (non-identical) splits."""
+        import shutil
+
         from src.data.split_data import run_split
 
-        import shutil
         img_dir = tmp_path / "merged" / "images"
         lbl_dir = tmp_path / "merged" / "labels"
         _make_synthetic_dataset(tmp_path / "synth", 100, 80)
@@ -266,16 +276,16 @@ class TestStratifiedSplit:
 
         # At least one split should differ
         diffs = sum(
-            paths1[n].read_text() != paths2[n].read_text()
-            for n in ("train", "val", "test")
+            paths1[n].read_text() != paths2[n].read_text() for n in ("train", "val", "test")
         )
         assert diffs > 0
 
     def test_dataset_yaml_created(self, tmp_path):
         """run_split should write a valid dataset.yaml."""
+        import shutil
+
         from src.data.split_data import run_split
 
-        import shutil
         img_dir = tmp_path / "merged" / "images"
         lbl_dir = tmp_path / "merged" / "labels"
         _make_synthetic_dataset(tmp_path / "synth", 30, 25)
@@ -295,9 +305,10 @@ class TestStratifiedSplit:
 
     def test_split_metadata_json_written(self, tmp_path):
         """Metadata JSON should be created with correct keys."""
+        import shutil
+
         from src.data.split_data import run_split
 
-        import shutil
         img_dir = tmp_path / "merged" / "images"
         lbl_dir = tmp_path / "merged" / "labels"
         _make_synthetic_dataset(tmp_path / "synth", 40, 30)
@@ -324,9 +335,10 @@ class TestStratifiedSplit:
 
     def test_stratification_preserves_positive_ratio(self, tmp_path):
         """Positive rate in each split should be close to the overall rate."""
-        from src.data.split_data import run_split, _is_positive
-
         import shutil
+
+        from src.data.split_data import _is_positive, run_split
+
         img_dir = tmp_path / "merged" / "images"
         lbl_dir = tmp_path / "merged" / "labels"
         # 80% positive
@@ -340,10 +352,7 @@ class TestStratifiedSplit:
             img_paths = [Path(l) for l in txt_path.read_text().splitlines() if l.strip()]
             if not img_paths:
                 continue
-            pos = sum(
-                1 for p in img_paths
-                if _is_positive(lbl_dir / f"{p.stem}.txt")
-            )
+            pos = sum(1 for p in img_paths if _is_positive(lbl_dir / f"{p.stem}.txt"))
             rate = pos / len(img_paths)
             # Should be within ±10% of 80%
             assert 0.70 <= rate <= 0.90, (

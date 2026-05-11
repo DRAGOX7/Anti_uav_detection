@@ -4,7 +4,7 @@ app/pages/video_tracking.py
 Streamlit page: Upload drone footage → detect + ByteTrack → export annotated MP4.
 This is the +5 bonus mark deliverable.
 
-DRONE vs BIRD DISCRIMINATOR 
+DRONE vs BIRD DISCRIMINATOR
 ------------------------------------------------------
 Uses 4 kinematic and geometric signals to separate drones from birds:
 
@@ -35,23 +35,31 @@ import math
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
 
 import cv2
 import numpy as np
 import streamlit as st
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Colour palette for track IDs
 # ─────────────────────────────────────────────────────────────────────────────
 TRACK_COLOURS = [
-    (0, 200, 80),   (255, 140, 0),  (0, 120, 255),  (200, 0, 200),
-    (0, 200, 200),  (255, 50, 50),  (50, 200, 50),  (255, 200, 0),
-    (100, 100, 255),(255, 100, 100),(0, 180, 180),  (180, 0, 180),
+    (0, 200, 80),
+    (255, 140, 0),
+    (0, 120, 255),
+    (200, 0, 200),
+    (0, 200, 200),
+    (255, 50, 50),
+    (50, 200, 50),
+    (255, 200, 0),
+    (100, 100, 255),
+    (255, 100, 100),
+    (0, 180, 180),
+    (180, 0, 180),
 ]
 
-def _get_colour(track_id: int) -> Tuple[int, int, int]:
+
+def _get_colour(track_id: int) -> tuple[int, int, int]:
     return TRACK_COLOURS[track_id % len(TRACK_COLOURS)]
 
 
@@ -63,6 +71,7 @@ def _get_colour(track_id: int) -> Tuple[int, int, int]:
 # IMPROVED DRONE / BIRD DISCRIMINATOR
 # Drop-in replacement for your current DroneClassifier
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class DroneClassifier:
     """
@@ -133,22 +142,13 @@ class DroneClassifier:
         # ─────────────────────────────────────────────────────────────
 
         if track_id not in self._aspect_ratios:
+            self._aspect_ratios[track_id] = collections.deque(maxlen=self.history_len)
 
-            self._aspect_ratios[track_id] = collections.deque(
-                maxlen=self.history_len
-            )
+            self._areas[track_id] = collections.deque(maxlen=self.history_len)
 
-            self._areas[track_id] = collections.deque(
-                maxlen=self.history_len
-            )
+            self._centres[track_id] = collections.deque(maxlen=self.history_len)
 
-            self._centres[track_id] = collections.deque(
-                maxlen=self.history_len
-            )
-
-            self._confidences[track_id] = collections.deque(
-                maxlen=self.history_len
-            )
+            self._confidences[track_id] = collections.deque(maxlen=self.history_len)
 
             self._scores[track_id] = 0.5
             self._frame_counts[track_id] = 0
@@ -177,9 +177,7 @@ class DroneClassifier:
 
         ar_fluc = np.std(ar_list)
 
-        signals["shape_stability"] = float(
-            np.clip(1.0 - ar_fluc / 0.25, 0.0, 1.0)
-        )
+        signals["shape_stability"] = float(np.clip(1.0 - ar_fluc / 0.25, 0.0, 1.0))
 
         # ============================================================
         # SIGNAL 2 — AREA STABILITY
@@ -189,9 +187,7 @@ class DroneClassifier:
 
         area_cv = np.std(area_list) / max(np.mean(area_list), 1e-9)
 
-        signals["area_stability"] = float(
-            np.clip(1.0 - area_cv / 0.35, 0.0, 1.0)
-        )
+        signals["area_stability"] = float(np.clip(1.0 - area_cv / 0.35, 0.0, 1.0))
 
         # ============================================================
         # SIGNAL 3 — MOTION SMOOTHNESS
@@ -205,7 +201,6 @@ class DroneClassifier:
         pts[:, 1] /= img_h
 
         if len(pts) >= 5:
-
             mean = pts.mean(axis=0)
 
             centred = pts - mean
@@ -218,9 +213,7 @@ class DroneClassifier:
 
             linearity = eigvals[0] / max(eigvals.sum(), 1e-9)
 
-            signals["motion_smoothness"] = float(
-                np.clip((linearity - 0.55) / 0.45, 0.0, 1.0)
-            )
+            signals["motion_smoothness"] = float(np.clip((linearity - 0.55) / 0.45, 0.0, 1.0))
 
         else:
             signals["motion_smoothness"] = 0.5
@@ -232,21 +225,17 @@ class DroneClassifier:
         speeds = []
 
         for i in range(1, len(pts)):
-
             dx = pts[i][0] - pts[i - 1][0]
             dy = pts[i][1] - pts[i - 1][1]
 
             speeds.append(math.sqrt(dx * dx + dy * dy))
 
         if len(speeds) >= 3:
-
             speed_arr = np.array(speeds)
 
             speed_cv = np.std(speed_arr) / max(np.mean(speed_arr), 1e-9)
 
-            signals["velocity_consistency"] = float(
-                np.clip(1.0 - speed_cv / 0.6, 0.0, 1.0)
-            )
+            signals["velocity_consistency"] = float(np.clip(1.0 - speed_cv / 0.6, 0.0, 1.0))
 
         else:
             signals["velocity_consistency"] = 0.5
@@ -258,7 +247,6 @@ class DroneClassifier:
         angle_changes = []
 
         for i in range(2, len(pts)):
-
             dx1 = pts[i - 1][0] - pts[i - 2][0]
             dy1 = pts[i - 1][1] - pts[i - 2][1]
 
@@ -275,12 +263,9 @@ class DroneClassifier:
             angle_changes.append(diff)
 
         if len(angle_changes) >= 3:
-
             jitter = np.std(angle_changes)
 
-            signals["angular_jitter"] = float(
-                np.clip(1.0 - jitter / 0.35, 0.0, 1.0)
-            )
+            signals["angular_jitter"] = float(np.clip(1.0 - jitter / 0.35, 0.0, 1.0))
 
         else:
             signals["angular_jitter"] = 0.5
@@ -290,7 +275,6 @@ class DroneClassifier:
         # ============================================================
 
         if len(ar_list) >= 12:
-
             signal = ar_list - np.mean(ar_list)
 
             fft = np.fft.rfft(signal)
@@ -301,9 +285,7 @@ class DroneClassifier:
 
             # high oscillation = bird
 
-            signals["wingbeat_fft"] = float(
-                np.clip(1.0 - osc_energy / 0.15, 0.0, 1.0)
-            )
+            signals["wingbeat_fft"] = float(np.clip(1.0 - osc_energy / 0.15, 0.0, 1.0))
 
         else:
             signals["wingbeat_fft"] = 0.5
@@ -316,22 +298,19 @@ class DroneClassifier:
 
         conf_cv = np.std(confs) / max(np.mean(confs), 1e-9)
 
-        signals["confidence_stability"] = float(
-            np.clip(1.0 - conf_cv / 0.45, 0.0, 1.0)
-        )
+        signals["confidence_stability"] = float(np.clip(1.0 - conf_cv / 0.45, 0.0, 1.0))
 
         # ============================================================
         # WEIGHTED FUSION
         # ============================================================
 
         weights = {
-
-            "shape_stability":      0.18,
-            "area_stability":       0.18,
-            "motion_smoothness":    0.16,
+            "shape_stability": 0.18,
+            "area_stability": 0.18,
+            "motion_smoothness": 0.16,
             "velocity_consistency": 0.10,
-            "angular_jitter":       0.16,
-            "wingbeat_fft":         0.14,
+            "angular_jitter": 0.16,
+            "wingbeat_fft": 0.14,
             "confidence_stability": 0.08,
         }
 
@@ -378,11 +357,7 @@ class DroneClassifier:
         if self._frame_counts.get(track_id, 0) < self.min_frames:
             return "CHECKING..."
 
-        return (
-            "DRONE"
-            if self.get_score(track_id) >= self.drone_threshold
-            else "BIRD"
-        )
+        return "DRONE" if self.get_score(track_id) >= self.drone_threshold else "BIRD"
 
     # ─────────────────────────────────────────────────────────────────────
 
@@ -391,7 +366,6 @@ class DroneClassifier:
         stale = set(self._aspect_ratios.keys()) - active_ids
 
         for tid in stale:
-
             self._aspect_ratios.pop(tid, None)
             self._areas.pop(tid, None)
             self._centres.pop(tid, None)
@@ -400,16 +374,20 @@ class DroneClassifier:
             self._scores.pop(tid, None)
             self._frame_counts.pop(tid, None)
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Model loader
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @st.cache_resource(show_spinner="Loading model weights…")
 def _load_model(weights_path: str, arch: str):
     if "rtdetr" in arch.lower():
         from ultralytics import RTDETR
+
         return RTDETR(weights_path)
     from ultralytics import YOLO
+
     return YOLO(weights_path)
 
 
@@ -426,6 +404,7 @@ def _find_available_weights(runs_dir: Path) -> dict[str, Path]:
 # ─────────────────────────────────────────────────────────────────────────────
 # Main render
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def render(project_root: Path, mlflow_uri: str) -> None:
     st.header("🎬 Video Detection + ByteTrack Tracking")
@@ -451,30 +430,41 @@ def render(project_root: Path, mlflow_uri: str) -> None:
             st.caption(f"`{weights_path}`")
 
         conf_thresh = st.slider("Detection confidence", 0.05, 0.90, 0.25, 0.05)
-        iou_thresh  = st.slider("NMS IoU threshold",    0.10, 0.90, 0.45, 0.05)
-        max_frames  = st.number_input(
+        iou_thresh = st.slider("NMS IoU threshold", 0.10, 0.90, 0.45, 0.05)
+        max_frames = st.number_input(
             "Max frames to process (0 = all)",
-            min_value=0, max_value=10_000, value=0, step=50,
+            min_value=0,
+            max_value=10_000,
+            value=0,
+            step=50,
         )
 
         st.markdown("### Display options")
-        show_trails    = st.checkbox("Trajectory trails",    value=True)
-        show_ids       = st.checkbox("Track IDs",            value=True)
-        show_conf      = st.checkbox("Confidence scores",    value=True)
-        show_hud       = st.checkbox("Show signal scores",   value=True,
-                                     help="Display the 4 kinematic signals per detection")
-        filter_birds   = st.checkbox("Filter birds out",     value=True,
-                                     help="Hide detections classified as birds")
+        show_trails = st.checkbox("Trajectory trails", value=True)
+        show_ids = st.checkbox("Track IDs", value=True)
+        show_conf = st.checkbox("Confidence scores", value=True)
+        show_hud = st.checkbox(
+            "Show signal scores", value=True, help="Display the 4 kinematic signals per detection"
+        )
+        filter_birds = st.checkbox(
+            "Filter birds out", value=True, help="Hide detections classified as birds"
+        )
 
         st.markdown("### Bird filter tuning")
         drone_threshold = st.slider(
             "Drone score threshold",
-            0.30, 0.90, 0.55, 0.05,
+            0.30,
+            0.90,
+            0.55,
+            0.05,
             help="Higher = stricter (fewer false drones). Lower = more permissive.",
         )
         min_frames_check = st.slider(
             "Min frames before decision",
-            3, 20, 8, 1,
+            3,
+            20,
+            8,
+            1,
             help="How many frames to observe before classifying as drone or bird.",
         )
 
@@ -522,36 +512,37 @@ def render(project_root: Path, mlflow_uri: str) -> None:
 # Core tracking loop
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _run_tracking(
-    input_path:       str,
-    output_path:      str,
-    weights_path:     str,
-    model_choice:     str,
-    conf:             float,
-    iou:              float,
-    max_frames:       Optional[int],
-    show_trails:      bool,
-    show_ids:         bool,
-    show_conf:        bool,
-    show_hud:         bool,
-    filter_birds:     bool,
-    drone_threshold:  float,
+    input_path: str,
+    output_path: str,
+    weights_path: str,
+    model_choice: str,
+    conf: float,
+    iou: float,
+    max_frames: int | None,
+    show_trails: bool,
+    show_ids: bool,
+    show_conf: bool,
+    show_hud: bool,
+    filter_birds: bool,
+    drone_threshold: float,
     min_frames_check: int,
 ) -> None:
 
-    model      = _load_model(weights_path, model_choice)
+    model = _load_model(weights_path, model_choice)
     classifier = DroneClassifier(
         history_len=30,
         drone_threshold=drone_threshold,
         min_frames=min_frames_check,
     )
 
-    cap          = cv2.VideoCapture(input_path)
+    cap = cv2.VideoCapture(input_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps_video    = cap.get(cv2.CAP_PROP_FPS) or 25.0
-    W            = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    H            = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    process_n    = min(max_frames or total_frames, total_frames)
+    fps_video = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    process_n = min(max_frames or total_frames, total_frames)
 
     st.markdown("---")
     st.markdown(
@@ -563,21 +554,21 @@ def _run_tracking(
     writer = cv2.VideoWriter(output_path, fourcc, fps_video, (W, H))
 
     # State
-    trails:        Dict[int, List[Tuple[int, int]]] = {}
-    TRAIL_LEN      = 40
+    trails: dict[int, list[tuple[int, int]]] = {}
+    TRAIL_LEN = 40
     unique_drones: set = set()
-    unique_birds:  set = set()
-    total_dets     = 0
-    frame_count    = 0
+    unique_birds: set = set()
+    total_dets = 0
+    frame_count = 0
 
     progress_bar = st.progress(0, text="Processing frames…")
     preview_slot = st.empty()
-    stats_cols   = st.columns(5)
-    s_frame      = stats_cols[0].empty()
-    s_dets       = stats_cols[1].empty()
-    s_drones     = stats_cols[2].empty()
-    s_birds      = stats_cols[3].empty()
-    s_fps        = stats_cols[4].empty()
+    stats_cols = st.columns(5)
+    s_frame = stats_cols[0].empty()
+    s_dets = stats_cols[1].empty()
+    s_drones = stats_cols[2].empty()
+    s_birds = stats_cols[3].empty()
+    s_fps = stats_cols[4].empty()
 
     t0 = time.time()
 
@@ -596,16 +587,16 @@ def _run_tracking(
             verbose=False,
         )
 
-        annotated     = frame.copy()
-        active_ids    = set()
+        annotated = frame.copy()
+        active_ids = set()
 
         if results and results[0].boxes is not None:
             boxes = results[0].boxes
 
             for box in boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
-                cx  = (x1 + x2) // 2
-                cy  = (y1 + y2) // 2
+                cx = (x1 + x2) // 2
+                cy = (y1 + y2) // 2
                 det_conf = float(box.conf[0])
                 tid = int(box.id[0]) if box.id is not None else -1
 
@@ -617,18 +608,18 @@ def _run_tracking(
 
                 # ── Classify: drone or bird? ──────────────────────────
                 drone_score, label, signals = classifier.update(
-    track_id=tid,
-    x1=x1,
-    y1=y1,
-    x2=x2,
-    y2=y2,
-    det_conf=det_conf,
-    img_w=W,
-    img_h=H,
-)
+                    track_id=tid,
+                    x1=x1,
+                    y1=y1,
+                    x2=x2,
+                    y2=y2,
+                    det_conf=det_conf,
+                    img_w=W,
+                    img_h=H,
+                )
 
-                is_drone    = (label == "DRONE")
-                is_checking = (label == "CHECKING...")
+                is_drone = label == "DRONE"
+                is_checking = label == "CHECKING..."
 
                 # Skip birds if filter is enabled
                 if filter_birds and label == "BIRD":
@@ -642,49 +633,76 @@ def _run_tracking(
 
                 # ── Choose visual style based on classification ────────
                 if is_checking:
-                    colour     = (180, 180, 180)   # grey = still deciding
-                    box_thick  = 1
-                    box_style  = "dashed"
+                    colour = (180, 180, 180)  # grey = still deciding
+                    box_thick = 1
+                    box_style = "dashed"
                 elif is_drone:
-                    colour     = _get_colour(tid)  # bright coloured = confirmed drone
-                    box_thick  = 2
-                    box_style  = "solid"
+                    colour = _get_colour(tid)  # bright coloured = confirmed drone
+                    box_thick = 2
+                    box_style = "solid"
                 else:
-                    colour     = (0, 0, 200)       # red = bird (shown when filter off)
-                    box_thick  = 1
-                    box_style  = "solid"
+                    colour = (0, 0, 200)  # red = bird (shown when filter off)
+                    box_thick = 1
+                    box_style = "solid"
 
                 # ── Draw bounding box ──────────────────────────────────
                 if box_style == "dashed":
-                    _draw_dashed_rect(annotated, (x1,y1), (x2,y2), colour, 1)
+                    _draw_dashed_rect(annotated, (x1, y1), (x2, y2), colour, 1)
                 else:
-                    cv2.rectangle(annotated, (x1,y1), (x2,y2), colour, box_thick)
+                    cv2.rectangle(annotated, (x1, y1), (x2, y2), colour, box_thick)
 
                 # ── Build label ────────────────────────────────────────
                 parts = []
-                if show_ids:   parts.append(f"#{tid}")
+                if show_ids:
+                    parts.append(f"#{tid}")
                 parts.append(label)
-                if show_conf:  parts.append(f"{det_conf:.2f}")
+                if show_conf:
+                    parts.append(f"{det_conf:.2f}")
                 if show_hud and signals:
                     parts.append(f"S:{drone_score:.2f}")
                 text = " | ".join(parts)
 
                 (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
-                cv2.rectangle(annotated, (x1, y1-th-6), (x1+tw+4, y1), colour, -1)
-                cv2.putText(annotated, text, (x1+2, y1-4),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255,255,255), 1)
+                cv2.rectangle(annotated, (x1, y1 - th - 6), (x1 + tw + 4, y1), colour, -1)
+                cv2.putText(
+                    annotated,
+                    text,
+                    (x1 + 2, y1 - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.45,
+                    (255, 255, 255),
+                    1,
+                )
 
                 # ── HUD: signal breakdown ──────────────────────────────
                 if show_hud and signals and is_drone:
                     hud_y = y2 + 14
                     for sig_name, sig_val in signals.items():
-                        bar_w   = int(sig_val * 60)
-                        bar_col = (0,200,80) if sig_val > 0.6 else (255,140,0) if sig_val > 0.4 else (0,0,200)
-                        short   = sig_name[:4].upper()
-                        cv2.putText(annotated, f"{short}:", (x1, hud_y),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.35, (220,220,220), 1)
-                        cv2.rectangle(annotated, (x1+30, hud_y-7),
-                                      (x1+30+bar_w, hud_y-1), bar_col, -1)
+                        bar_w = int(sig_val * 60)
+                        bar_col = (
+                            (0, 200, 80)
+                            if sig_val > 0.6
+                            else (255, 140, 0)
+                            if sig_val > 0.4
+                            else (0, 0, 200)
+                        )
+                        short = sig_name[:4].upper()
+                        cv2.putText(
+                            annotated,
+                            f"{short}:",
+                            (x1, hud_y),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.35,
+                            (220, 220, 220),
+                            1,
+                        )
+                        cv2.rectangle(
+                            annotated,
+                            (x1 + 30, hud_y - 7),
+                            (x1 + 30 + bar_w, hud_y - 1),
+                            bar_col,
+                            -1,
+                        )
                         hud_y += 12
 
                 # ── Trail (drones only) ────────────────────────────────
@@ -696,43 +714,64 @@ def _run_tracking(
                         trails[tid].pop(0)
                     pts = trails[tid]
                     for i in range(1, len(pts)):
-                        alpha   = i / len(pts)
+                        alpha = i / len(pts)
                         c_faded = tuple(int(v * alpha) for v in colour)
-                        cv2.line(annotated, pts[i-1], pts[i], c_faded, 2)
+                        cv2.line(annotated, pts[i - 1], pts[i], c_faded, 2)
 
         # Cleanup stale tracks every 30 frames
         if frame_count % 30 == 0:
             classifier.cleanup_stale_tracks(active_ids)
 
         # ── Overlay counters ───────────────────────────────────────────
-        cv2.putText(annotated, f"Frame {frame_count+1}/{process_n}",
-                    (10, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200,200,200), 1)
-        cv2.putText(annotated, f"Drones: {len(unique_drones)}",
-                    (10, 44), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0,220,80), 1)
+        cv2.putText(
+            annotated,
+            f"Frame {frame_count + 1}/{process_n}",
+            (10, 22),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (200, 200, 200),
+            1,
+        )
+        cv2.putText(
+            annotated,
+            f"Drones: {len(unique_drones)}",
+            (10, 44),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (0, 220, 80),
+            1,
+        )
         if not filter_birds:
-            cv2.putText(annotated, f"Birds: {len(unique_birds)}",
-                        (10, 66), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (80,80,255), 1)
+            cv2.putText(
+                annotated,
+                f"Birds: {len(unique_birds)}",
+                (10, 66),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.55,
+                (80, 80, 255),
+                1,
+            )
 
         writer.write(annotated)
         frame_count += 1
 
         # ── Update UI every 10 frames ──────────────────────────────────
         if frame_count % 10 == 0 or frame_count == process_n:
-            pct     = frame_count / process_n
+            pct = frame_count / process_n
             elapsed = time.time() - t0
             cur_fps = frame_count / max(elapsed, 0.001)
 
             progress_bar.progress(pct, text=f"Frame {frame_count}/{process_n}")
-            s_frame.metric("Frames",        f"{frame_count}/{process_n}")
-            s_dets.metric("Detections",     total_dets)
-            s_drones.metric("🟢 Drones",    len(unique_drones))
-            s_birds.metric("🔴 Birds",      len(unique_birds))
-            s_fps.metric("Proc. FPS",       f"{cur_fps:.1f}")
+            s_frame.metric("Frames", f"{frame_count}/{process_n}")
+            s_dets.metric("Detections", total_dets)
+            s_drones.metric("🟢 Drones", len(unique_drones))
+            s_birds.metric("🔴 Birds", len(unique_birds))
+            s_fps.metric("Proc. FPS", f"{cur_fps:.1f}")
 
             preview_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-            preview_slot.image(preview_rgb,
-                               caption=f"Frame {frame_count}",
-                               use_container_width=True)
+            preview_slot.image(
+                preview_rgb, caption=f"Frame {frame_count}", use_container_width=True
+            )
 
     cap.release()
     writer.release()
@@ -757,11 +796,11 @@ def _run_tracking(
     st.markdown("---")
     st.subheader("Tracking summary")
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Frames",         frame_count)
-    c2.metric("Total dets",     total_dets)
-    c3.metric("🟢 Drone IDs",   len(unique_drones))
+    c1.metric("Frames", frame_count)
+    c2.metric("Total dets", total_dets)
+    c3.metric("🟢 Drone IDs", len(unique_drones))
     c4.metric("🔴 Birds filtered", len(unique_birds))
-    c5.metric("Speed",          f"{frame_count/max(elapsed,0.001):.1f} FPS")
+    c5.metric("Speed", f"{frame_count / max(elapsed, 0.001):.1f} FPS")
 
     # ── Legend ────────────────────────────────────────────────────────────
     with st.expander("🔬 How the bird/drone discriminator works"):
@@ -790,11 +829,12 @@ def _run_tracking(
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _draw_dashed_rect(
     img: np.ndarray,
-    pt1: Tuple[int,int],
-    pt2: Tuple[int,int],
-    colour: Tuple[int,int,int],
+    pt1: tuple[int, int],
+    pt2: tuple[int, int],
+    colour: tuple[int, int, int],
     thickness: int = 1,
     dash_len: int = 8,
 ) -> None:
@@ -802,17 +842,19 @@ def _draw_dashed_rect(
     x1, y1 = pt1
     x2, y2 = pt2
     for side in [
-        ((x1,y1),(x2,y1)), ((x2,y1),(x2,y2)),
-        ((x2,y2),(x1,y2)), ((x1,y2),(x1,y1)),
+        ((x1, y1), (x2, y1)),
+        ((x2, y1), (x2, y2)),
+        ((x2, y2), (x1, y2)),
+        ((x1, y2), (x1, y1)),
     ]:
         sx, sy = side[0]
         ex, ey = side[1]
-        dist   = int(math.hypot(ex-sx, ey-sy))
+        dist = int(math.hypot(ex - sx, ey - sy))
         for d in range(0, dist, dash_len * 2):
             t0 = d / max(dist, 1)
             t1 = min((d + dash_len) / max(dist, 1), 1.0)
-            p0 = (int(sx + (ex-sx)*t0), int(sy + (ey-sy)*t0))
-            p1 = (int(sx + (ex-sx)*t1), int(sy + (ey-sy)*t1))
+            p0 = (int(sx + (ex - sx) * t0), int(sy + (ey - sy) * t0))
+            p1 = (int(sx + (ex - sx) * t1), int(sy + (ey - sy) * t1))
             cv2.line(img, p0, p1, colour, thickness)
 
 

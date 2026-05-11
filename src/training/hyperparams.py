@@ -19,16 +19,15 @@ Each HP combination is stored as a YAML file in configs/:
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import Optional
 
 import yaml
-
 
 # ---------------------------------------------------------------------------
 # Config dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class TrainingConfig:
@@ -38,62 +37,62 @@ class TrainingConfig:
     """
 
     # ── Identity ──────────────────────────────────────────────────────────
-    architecture:    str  = "yolov11"      # yolov11 | yolov8 | rtdetr
-    model_name:      str  = "yolov11s"     # exact model variant
-    hp_combination:  str  = "hp1"          # hp1 | hp2 | hp3 (for report tables)
-    experiment_name: str  = "anti-uav"     # MLflow experiment
+    architecture: str = "yolov11"  # yolov11 | yolov8 | rtdetr
+    model_name: str = "yolov11s"  # exact model variant
+    hp_combination: str = "hp1"  # hp1 | hp2 | hp3 (for report tables)
+    experiment_name: str = "anti-uav"  # MLflow experiment
 
     # ── Data ──────────────────────────────────────────────────────────────
-    dataset_yaml:    str  = "data/dataset.yaml"
-    imgsz:           int  = 640
-    workers:         int  = 8
-    cache:           bool = False          # cache images to RAM (needs ~8GB+)
-    fraction:        float = 1.0           # Ultralytics: fraction of dataset to train on (0, 1]
+    dataset_yaml: str = "data/dataset.yaml"
+    imgsz: int = 640
+    workers: int = 8
+    cache: bool = False  # cache images to RAM (needs ~8GB+)
+    fraction: float = 1.0  # Ultralytics: fraction of dataset to train on (0, 1]
 
     # ── Training schedule ─────────────────────────────────────────────────
-    epochs:          int   = 100
-    batch_size:      int   = 16
-    patience:        int   = 50           # early stopping patience (epochs)
-    save_period:     int   = 10           # save checkpoint every N epochs
+    epochs: int = 100
+    batch_size: int = 16
+    patience: int = 50  # early stopping patience (epochs)
+    save_period: int = 10  # save checkpoint every N epochs
 
     # ── Optimiser ─────────────────────────────────────────────────────────
-    optimizer:       str   = "SGD"        # SGD | Adam | AdamW
-    lr:              float = 1e-2         # initial learning rate (lr0)
-    lrf:             float = 0.01         # final lr = lr0 * lrf
-    momentum:        float = 0.937        # SGD momentum / Adam beta1
-    weight_decay:    float = 5e-4
-    warmup_epochs:   float = 3.0
+    optimizer: str = "SGD"  # SGD | Adam | AdamW
+    lr: float = 1e-2  # initial learning rate (lr0)
+    lrf: float = 0.01  # final lr = lr0 * lrf
+    momentum: float = 0.937  # SGD momentum / Adam beta1
+    weight_decay: float = 5e-4
+    warmup_epochs: float = 3.0
     warmup_momentum: float = 0.8
-    warmup_bias_lr:  float = 0.1
-    amp:             bool  = True         # automatic mixed precision
+    warmup_bias_lr: float = 0.1
+    amp: bool = True  # automatic mixed precision
 
     # ── Augmentation ──────────────────────────────────────────────────────
-    mosaic:      float = 1.0    # mosaic augmentation probability
-    mixup:       float = 0.0    # mixup augmentation probability
-    copy_paste:  float = 0.0    # copy-paste augmentation probability
-    degrees:     float = 0.0    # rotation degrees
-    translate:   float = 0.1    # translation fraction
-    scale:       float = 0.5    # scale gain
-    shear:       float = 0.0    # shear degrees
-    perspective: float = 0.0    # perspective distortion
-    flipud:      float = 0.0    # vertical flip probability
-    fliplr:      float = 0.5    # horizontal flip probability
-    hsv_h:       float = 0.015  # HSV hue augmentation
-    hsv_s:       float = 0.7    # HSV saturation augmentation
-    hsv_v:       float = 0.4    # HSV value augmentation
-    erasing:     float = 0.4    # random erasing probability (YOLOv11)
+    mosaic: float = 1.0  # mosaic augmentation probability
+    mixup: float = 0.0  # mixup augmentation probability
+    copy_paste: float = 0.0  # copy-paste augmentation probability
+    degrees: float = 0.0  # rotation degrees
+    translate: float = 0.1  # translation fraction
+    scale: float = 0.5  # scale gain
+    shear: float = 0.0  # shear degrees
+    perspective: float = 0.0  # perspective distortion
+    flipud: float = 0.0  # vertical flip probability
+    fliplr: float = 0.5  # horizontal flip probability
+    hsv_h: float = 0.015  # HSV hue augmentation
+    hsv_s: float = 0.7  # HSV saturation augmentation
+    hsv_v: float = 0.4  # HSV value augmentation
+    erasing: float = 0.4  # random erasing probability (YOLOv11)
 
     # ── Hardware ──────────────────────────────────────────────────────────
-    device:      str = "0"      # GPU index, "cpu", or "mps"
-    seed:        int = 42
+    device: str = "0"  # GPU index, "cpu", or "mps"
+    seed: int = 42
 
     # ── Output ────────────────────────────────────────────────────────────
-    output_dir:  str = "runs/train"
-    pretrained:  bool = True    # use COCO-pretrained weights
+    output_dir: str = "runs/train"
+    pretrained: bool = True  # use COCO-pretrained weights
 
     # ── Validation override ───────────────────────────────────────────────
     conf_threshold: float = 0.001  # detection confidence threshold for val
-    iou_threshold:  float = 0.6    # NMS IoU threshold
+    iou_threshold: float = 0.6  # NMS IoU threshold
 
     def __post_init__(self) -> None:
         """Resolve relative paths to absolute."""
@@ -118,6 +117,7 @@ class TrainingConfig:
 # ---------------------------------------------------------------------------
 # YAML loader
 # ---------------------------------------------------------------------------
+
 
 def load_config(path: Path) -> TrainingConfig:
     """
@@ -158,9 +158,7 @@ def _validate_config(cfg: TrainingConfig, path: Path) -> None:
     if cfg.batch_size < 1:
         raise ValueError(f"batch_size must be ≥ 1, got {cfg.batch_size}")
     if cfg.imgsz not in {320, 416, 512, 640, 800, 1024, 1280}:
-        raise ValueError(
-            f"imgsz={cfg.imgsz} is unusual. Typical values: 416, 640, 1280."
-        )
+        raise ValueError(f"imgsz={cfg.imgsz} is unusual. Typical values: 416, 640, 1280.")
     if not (0 < float(cfg.fraction) <= 1.0):
         raise ValueError(f"fraction must be in (0, 1], got {cfg.fraction}")
 

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import mlflow
@@ -16,19 +15,21 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
-
 # ---------------------------------------------------------------------------
 # Model loader (cached so weights aren't reloaded on every interaction)
 # ---------------------------------------------------------------------------
+
 
 @st.cache_resource(show_spinner="Loading model weights…")
 def _load_model(weights_path: str, arch: str):
     """Load and cache a model from disk or MLflow registry."""
     if arch.startswith("rtdetr"):
         from ultralytics import RTDETR  # noqa: PLC0415
+
         return RTDETR(weights_path)
     else:
-        from ultralytics import YOLO    # noqa: PLC0415
+        from ultralytics import YOLO  # noqa: PLC0415
+
         return YOLO(weights_path)
 
 
@@ -66,20 +67,22 @@ def _draw_detections(img_bgr: np.ndarray, results, colour=(0, 200, 80)) -> np.nd
             continue
         for box in r.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
-            conf  = float(box.conf[0])
-            cls   = int(box.cls[0])
+            conf = float(box.conf[0])
+            int(box.cls[0])
             label = f"drone {conf:.2f}"
             cv2.rectangle(out, (x1, y1), (x2, y2), colour, 2)
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
             cv2.rectangle(out, (x1, y1 - th - 6), (x1 + tw + 4, y1), colour, -1)
-            cv2.putText(out, label, (x1 + 2, y1 - 4),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1)
+            cv2.putText(
+                out, label, (x1 + 2, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1
+            )
     return out
 
 
 # ---------------------------------------------------------------------------
 # Main render function
 # ---------------------------------------------------------------------------
+
 
 def render(project_root: Path, mlflow_uri: str) -> None:
     st.header("🖼️ Image Detection")
@@ -100,13 +103,13 @@ def render(project_root: Path, mlflow_uri: str) -> None:
             model_choice = None
             weights_path = None
         else:
-            model_choice  = st.selectbox("Model / HP combo", list(available.keys()))
-            weights_path  = str(available[model_choice])
+            model_choice = st.selectbox("Model / HP combo", list(available.keys()))
+            weights_path = str(available[model_choice])
             st.caption(f"Weights: `{weights_path}`")
 
         conf_thresh = st.slider("Confidence threshold", 0.05, 0.95, 0.25, 0.05)
-        iou_thresh  = st.slider("NMS IoU threshold",    0.10, 0.90, 0.45, 0.05)
-        show_raw    = st.checkbox("Show original image alongside", value=True)
+        iou_thresh = st.slider("NMS IoU threshold", 0.10, 0.90, 0.45, 0.05)
+        show_raw = st.checkbox("Show original image alongside", value=True)
 
     # ── File uploader ────────────────────────────────────────────────────
     uploaded = st.file_uploader(
@@ -125,13 +128,13 @@ def render(project_root: Path, mlflow_uri: str) -> None:
         return
 
     # ── Load & display image ─────────────────────────────────────────────
-    pil_img  = Image.open(uploaded).convert("RGB")
-    img_np   = np.array(pil_img)
-    img_bgr  = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+    pil_img = Image.open(uploaded).convert("RGB")
+    img_np = np.array(pil_img)
+    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
     # ── Run detection ────────────────────────────────────────────────────
     with st.spinner("Running inference…"):
-        model   = _load_model(weights_path, model_choice)
+        model = _load_model(weights_path, model_choice)
         results = _run_inference(model, img_bgr, conf_thresh, iou_thresh)
 
     # ── Extract detection info ────────────────────────────────────────────
@@ -139,13 +142,15 @@ def render(project_root: Path, mlflow_uri: str) -> None:
     for r in results:
         if r.boxes:
             for box in r.boxes:
-                all_boxes.append({
-                    "x1":   int(box.xyxy[0][0]),
-                    "y1":   int(box.xyxy[0][1]),
-                    "x2":   int(box.xyxy[0][2]),
-                    "y2":   int(box.xyxy[0][3]),
-                    "conf": float(box.conf[0]),
-                })
+                all_boxes.append(
+                    {
+                        "x1": int(box.xyxy[0][0]),
+                        "y1": int(box.xyxy[0][1]),
+                        "x2": int(box.xyxy[0][2]),
+                        "y2": int(box.xyxy[0][3]),
+                        "conf": float(box.conf[0]),
+                    }
+                )
 
     # ── Metrics row ──────────────────────────────────────────────────────
     n_det = len(all_boxes)
@@ -153,9 +158,9 @@ def render(project_root: Path, mlflow_uri: str) -> None:
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Drones detected", n_det)
-    c2.metric("Max confidence",  f"{max_conf:.3f}" if max_conf else "—")
-    c3.metric("Image size",      f"{pil_img.width}×{pil_img.height}")
-    c4.metric("Model",           model_choice.replace("_", " "))
+    c2.metric("Max confidence", f"{max_conf:.3f}" if max_conf else "—")
+    c3.metric("Image size", f"{pil_img.width}×{pil_img.height}")
+    c4.metric("Model", model_choice.replace("_", " "))
 
     st.markdown("---")
 
@@ -180,14 +185,18 @@ def render(project_root: Path, mlflow_uri: str) -> None:
         st.markdown("---")
         st.subheader("Detection details")
         import pandas as pd  # noqa: PLC0415
+
         df = pd.DataFrame(all_boxes)
-        df["width"]  = df["x2"] - df["x1"]
+        df["width"] = df["x2"] - df["x1"]
         df["height"] = df["y2"] - df["y1"]
-        df["area_%"] = (df["width"] * df["height"] /
-                        (pil_img.width * pil_img.height) * 100).round(3)
-        df["conf"]   = df["conf"].round(4)
-        st.dataframe(df[["x1","y1","x2","y2","width","height","area_%","conf"]],
-                     use_container_width=True)
+        df["area_%"] = (df["width"] * df["height"] / (pil_img.width * pil_img.height) * 100).round(
+            3
+        )
+        df["conf"] = df["conf"].round(4)
+        st.dataframe(
+            df[["x1", "y1", "x2", "y2", "width", "height", "area_%", "conf"]],
+            use_container_width=True,
+        )
 
     # ── Download annotated image ──────────────────────────────────────────
     st.markdown("---")
@@ -229,14 +238,18 @@ def _log_inference_to_mlflow(
         mlflow.set_tracking_uri(uri)
         mlflow.set_experiment("inference-logs")
         with mlflow.start_run(run_name=f"inference-{model_name}"):
-            mlflow.log_params({
-                "model":      model_name,
-                "img_width":  img.width,
-                "img_height": img.height,
-            })
-            mlflow.log_metrics({
-                "n_detections": n_detections,
-                "max_confidence": max_conf,
-            })
+            mlflow.log_params(
+                {
+                    "model": model_name,
+                    "img_width": img.width,
+                    "img_height": img.height,
+                }
+            )
+            mlflow.log_metrics(
+                {
+                    "n_detections": n_detections,
+                    "max_confidence": max_conf,
+                }
+            )
     except Exception:
         pass  # Logging failure should never block the UI

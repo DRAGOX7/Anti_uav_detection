@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Sequence, Tuple
+from collections.abc import Sequence
 
 import torch
 from torch import nn
@@ -29,9 +29,7 @@ class MobileViTFeatures(nn.Module):
         try:
             import timm  # noqa: PLC0415
         except Exception as e:  # pragma: no cover
-            raise ImportError(
-                "Missing dependency 'timm'. Install it with: pip install timm"
-            ) from e
+            raise ImportError("Missing dependency 'timm'. Install it with: pip install timm") from e
 
         # timm features_only returns a FeatureListNet that outputs a list of feature maps
         self.variant = str(variant)
@@ -47,11 +45,11 @@ class MobileViTFeatures(nn.Module):
 
         # Feature channels for convenience/debugging
         try:
-            self.out_channels: Tuple[int, ...] = tuple(self.backbone.feature_info.channels())
+            self.out_channels: tuple[int, ...] = tuple(self.backbone.feature_info.channels())
         except Exception:  # pragma: no cover
             self.out_channels = ()
 
-    def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
         feats = self.backbone(x)
         if not isinstance(feats, (list, tuple)):
             raise TypeError(f"Expected backbone features list/tuple, got {type(feats)}")

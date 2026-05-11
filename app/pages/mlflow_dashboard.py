@@ -23,17 +23,13 @@ def _get_metric(run, possible_keys: list[str], default: float = 0.0) -> float:
 
 def render(mlflow_uri: str) -> None:
     st.header("🔬 MLflow Experiment Dashboard")
-    st.caption(
-        f"Tracking URI: `{mlflow_uri}`  —  "
-        f"[Open full MLflow UI →](http://localhost:5000)"
-    )
+    st.caption(f"Tracking URI: `{mlflow_uri}`  —  [Open full MLflow UI →](http://localhost:5000)")
 
     mlflow.set_tracking_uri(mlflow_uri)
     client = MlflowClient()
 
     # ── Experiments ───────────────────────────────────────────────────────
-    experiments = [e for e in client.search_experiments()
-                   if e.name != "Default"]
+    experiments = [e for e in client.search_experiments() if e.name != "Default"]
 
     if not experiments:
         st.info(
@@ -65,21 +61,23 @@ def render(mlflow_uri: str) -> None:
         precision = _get_metric(r, ["metrics/precision(B)", "val/precision", "test/precision"])
         recall = _get_metric(r, ["metrics/recall(B)", "val/recall", "test/recall"])
 
-        rows.append({
-            "Run name":    r.info.run_name or r.info.run_id[:8],
-            "Status":      r.info.status,
-            "Architecture":r.data.params.get("architecture", "?"),
-            "HP combo":    r.data.params.get("hp_combination", "?"),
-            "Epochs":      r.data.params.get("epochs", "?"),
-            "LR":          r.data.params.get("lr", "?"),
-            "Batch":       r.data.params.get("batch", "?"),
-            "Optimizer":   r.data.params.get("optimizer", "?"),
-            "val/mAP50":     round(map50, 4),
-            "val/mAP50-95":  round(map50_95, 4),
-            "val/precision": round(precision, 4),
-            "val/recall":    round(recall, 4),
-            "run_id":      r.info.run_id,
-        })
+        rows.append(
+            {
+                "Run name": r.info.run_name or r.info.run_id[:8],
+                "Status": r.info.status,
+                "Architecture": r.data.params.get("architecture", "?"),
+                "HP combo": r.data.params.get("hp_combination", "?"),
+                "Epochs": r.data.params.get("epochs", "?"),
+                "LR": r.data.params.get("lr", "?"),
+                "Batch": r.data.params.get("batch", "?"),
+                "Optimizer": r.data.params.get("optimizer", "?"),
+                "val/mAP50": round(map50, 4),
+                "val/mAP50-95": round(map50_95, 4),
+                "val/precision": round(precision, 4),
+                "val/recall": round(recall, 4),
+                "run_id": r.info.run_id,
+            }
+        )
 
     df = pd.DataFrame(rows)
 
@@ -98,7 +96,7 @@ def render(mlflow_uri: str) -> None:
     if best_idx is not None:
         best = df.loc[best_idx]
         # Only show the best run if it actually has data (greater than 0)
-        if best['val/mAP50'] > 0.0:
+        if best["val/mAP50"] > 0.0:
             st.success(
                 f"🏆 Best run: **{best['Run name']}** "
                 f"({best['Architecture']} {best['HP combo']}) — "
@@ -145,8 +143,8 @@ def render(mlflow_uri: str) -> None:
     st.markdown("---")
     st.subheader("Inspect a specific run")
     run_names = df["Run name"].tolist()
-    sel_run   = st.selectbox("Select run to inspect", run_names)
-    sel_row   = df[df["Run name"] == sel_run].iloc[0]
+    sel_run = st.selectbox("Select run to inspect", run_names)
+    sel_row = df[df["Run name"] == sel_run].iloc[0]
 
     with st.expander("All parameters", expanded=False):
         r = client.get_run(sel_row["run_id"])
@@ -158,8 +156,7 @@ def render(mlflow_uri: str) -> None:
     with st.expander("All metrics", expanded=False):
         r = client.get_run(sel_row["run_id"])
         metrics_df = pd.DataFrame(
-            [{"Metric": k, "Value": round(v, 6)}
-             for k, v in sorted(r.data.metrics.items())]
+            [{"Metric": k, "Value": round(v, 6)} for k, v in sorted(r.data.metrics.items())]
         )
         st.dataframe(metrics_df, use_container_width=True)
 

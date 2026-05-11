@@ -15,7 +15,9 @@ from mlflow.tracking import MlflowClient
 
 def render(mlflow_uri: str) -> None:
     st.header("📊 Model Comparison")
-    st.caption("Select two MLflow runs to compare architectures and HP configurations side-by-side.")
+    st.caption(
+        "Select two MLflow runs to compare architectures and HP configurations side-by-side."
+    )
 
     mlflow.set_tracking_uri(mlflow_uri)
     client = MlflowClient()
@@ -41,18 +43,22 @@ def render(mlflow_uri: str) -> None:
             max_results=50,
         )
         for r in runs:
-            all_runs.append({
-                "run_id":   r.info.run_id[:8],
-                "full_id":  r.info.run_id,
-                "name":     r.info.run_name or r.info.run_id[:8],
-                "arch":     r.data.params.get("architecture", "?"),
-                "combo":    r.data.params.get("hp_combination", "?"),
-                "mAP50":    r.data.metrics.get("val/mAP50",    r.data.metrics.get("metrics/mAP50(B)", 0)),
-                "mAP5095":  r.data.metrics.get("val/mAP50_95", 0),
-                "prec":     r.data.metrics.get("val/precision", 0),
-                "recall":   r.data.metrics.get("val/recall",    0),
-                "experiment": exp.name,
-            })
+            all_runs.append(
+                {
+                    "run_id": r.info.run_id[:8],
+                    "full_id": r.info.run_id,
+                    "name": r.info.run_name or r.info.run_id[:8],
+                    "arch": r.data.params.get("architecture", "?"),
+                    "combo": r.data.params.get("hp_combination", "?"),
+                    "mAP50": r.data.metrics.get(
+                        "val/mAP50", r.data.metrics.get("metrics/mAP50(B)", 0)
+                    ),
+                    "mAP5095": r.data.metrics.get("val/mAP50_95", 0),
+                    "prec": r.data.metrics.get("val/precision", 0),
+                    "recall": r.data.metrics.get("val/recall", 0),
+                    "experiment": exp.name,
+                }
+            )
 
     if not all_runs:
         st.warning("No finished runs found. Complete at least one training run.")
@@ -85,25 +91,23 @@ def render(mlflow_uri: str) -> None:
 
     # ── Metric cards ──────────────────────────────────────────────────────
     metrics_to_compare = [
-        ("mAP@50",       "mAP50"),
-        ("mAP@50-95",    "mAP5095"),
-        ("Precision",    "prec"),
-        ("Recall",       "recall"),
+        ("mAP@50", "mAP50"),
+        ("mAP@50-95", "mAP5095"),
+        ("Precision", "prec"),
+        ("Recall", "recall"),
     ]
 
     st.subheader("Metric comparison")
     cols = st.columns(len(metrics_to_compare))
-    for col, (label, key) in zip(cols, metrics_to_compare):
+    for col, (label, key) in zip(cols, metrics_to_compare, strict=False):
         val_a = run_a[key] if key in run_a else 0.0
         val_b = run_b[key] if key in run_b else 0.0
         delta = val_a - val_b
         with col:
             st.markdown(f"**{label}**")
             c1, c2 = st.columns(2)
-            c1.metric(run_a["arch"] + " " + run_a["combo"],
-                      f"{val_a:.4f}", delta=f"{delta:+.4f}")
-            c2.metric(run_b["arch"] + " " + run_b["combo"],
-                      f"{val_b:.4f}", delta=f"{-delta:+.4f}")
+            c1.metric(run_a["arch"] + " " + run_a["combo"], f"{val_a:.4f}", delta=f"{delta:+.4f}")
+            c2.metric(run_b["arch"] + " " + run_b["combo"], f"{val_b:.4f}", delta=f"{-delta:+.4f}")
 
     st.markdown("---")
 
@@ -114,27 +118,31 @@ def render(mlflow_uri: str) -> None:
     vals_b = [run_b["mAP50"], run_b["mAP5095"], run_b["prec"], run_b["recall"]]
 
     fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=vals_a + [vals_a[0]],
-        theta=categories + [categories[0]],
-        fill="toself",
-        name=f"{run_a['arch']} {run_a['combo']}",
-        line_color="#2d6a4f",
-        fillcolor="rgba(45,106,79,0.2)",
-    ))
-    fig.add_trace(go.Scatterpolar(
-        r=vals_b + [vals_b[0]],
-        theta=categories + [categories[0]],
-        fill="toself",
-        name=f"{run_b['arch']} {run_b['combo']}",
-        line_color="#e05c00",
-        fillcolor="rgba(224,92,0,0.2)",
-    ))
+    fig.add_trace(
+        go.Scatterpolar(
+            r=vals_a + [vals_a[0]],
+            theta=categories + [categories[0]],
+            fill="toself",
+            name=f"{run_a['arch']} {run_a['combo']}",
+            line_color="#2d6a4f",
+            fillcolor="rgba(45,106,79,0.2)",
+        )
+    )
+    fig.add_trace(
+        go.Scatterpolar(
+            r=vals_b + [vals_b[0]],
+            theta=categories + [categories[0]],
+            fill="toself",
+            name=f"{run_b['arch']} {run_b['combo']}",
+            line_color="#e05c00",
+            fillcolor="rgba(224,92,0,0.2)",
+        )
+    )
     fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+        polar={"radialaxis": {"visible": True, "range": [0, 1]}},
         showlegend=True,
         height=400,
-        margin=dict(l=60, r=60, t=40, b=40),
+        margin={"l": 60, "r": 60, "t": 40, "b": 40},
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -155,24 +163,30 @@ def render(mlflow_uri: str) -> None:
     if hist_a or hist_b:
         fig2 = go.Figure()
         if hist_a:
-            steps, vals = zip(*hist_a)
-            fig2.add_trace(go.Scatter(
-                x=list(steps), y=list(vals),
-                name=f"{run_a['arch']} {run_a['combo']}",
-                line=dict(color="#2d6a4f", width=2),
-            ))
+            steps, vals = zip(*hist_a, strict=False)
+            fig2.add_trace(
+                go.Scatter(
+                    x=list(steps),
+                    y=list(vals),
+                    name=f"{run_a['arch']} {run_a['combo']}",
+                    line={"color": "#2d6a4f", "width": 2},
+                )
+            )
         if hist_b:
-            steps, vals = zip(*hist_b)
-            fig2.add_trace(go.Scatter(
-                x=list(steps), y=list(vals),
-                name=f"{run_b['arch']} {run_b['combo']}",
-                line=dict(color="#e05c00", width=2),
-            ))
+            steps, vals = zip(*hist_b, strict=False)
+            fig2.add_trace(
+                go.Scatter(
+                    x=list(steps),
+                    y=list(vals),
+                    name=f"{run_b['arch']} {run_b['combo']}",
+                    line={"color": "#e05c00", "width": 2},
+                )
+            )
         fig2.update_layout(
             xaxis_title="Epoch",
             yaxis_title="val/mAP50",
             height=350,
-            margin=dict(l=40, r=20, t=20, b=40),
+            margin={"l": 40, "r": 20, "t": 20, "b": 40},
         )
         st.plotly_chart(fig2, use_container_width=True)
     else:

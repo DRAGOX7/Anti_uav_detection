@@ -40,16 +40,14 @@ import platform
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
 
 import mlflow
 import torch
-import yaml
 
 # Project imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.training.hyperparams import TrainingConfig, load_config
 from src.training.mlflow_callbacks import add_mlflow_callbacks, start_mlflow_run
-from src.training.hyperparams import load_config, TrainingConfig
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,7 +82,7 @@ def resolve_rtdetr_weights(model_name: str, *, default: str = "rtdetr-r50.pt") -
     return RTDETR_MODEL_MAP.get(model_name, model_name)
 
 
-def train_ultralytics(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
+def train_ultralytics(cfg: TrainingConfig, run_id: str) -> dict[str, float]:
     """
     Train a YOLOv11 or YOLOv8 model using the Ultralytics API.
     Returns dict of final validation metrics.
@@ -98,9 +96,9 @@ def train_ultralytics(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
         "yolov11s": "yolo11s.pt",
         "yolov11m": "yolo11m.pt",
         "yolov11l": "yolo11l.pt",
-        "yolov8s":  "yolov8s.pt",
-        "yolov8m":  "yolov8m.pt",
-        "yolov8l":  "yolov8l.pt",
+        "yolov8s": "yolov8s.pt",
+        "yolov8m": "yolov8m.pt",
+        "yolov8l": "yolov8l.pt",
         # Custom lightweight Transformer-style backbone
         "yolov11-mobilevit-s": str(project_root / "configs" / "models" / "yolo11_mobilevit_s.yaml"),
     }
@@ -115,7 +113,7 @@ def train_ultralytics(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
 
         from src.models.mobilevit_yolo import MobileViTFeatures  # noqa: PLC0415
 
-        setattr(tasks, "MobileViTFeatures", MobileViTFeatures)
+        tasks.MobileViTFeatures = MobileViTFeatures
 
     log.info("Loading model: %s", model_weights)
 
@@ -128,12 +126,12 @@ def train_ultralytics(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
         architecture=cfg.architecture,
         hp_combo=cfg.hp_combination,
         extra_params={
-            "model_name":  cfg.model_name,
-            "git_sha":     _get_git_sha(),
-            "python":      platform.python_version(),
-            "torch":       torch.__version__,
-            "cuda":        torch.version.cuda or "cpu",
-            "gpu_name":    torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
+            "model_name": cfg.model_name,
+            "git_sha": _get_git_sha(),
+            "python": platform.python_version(),
+            "torch": torch.__version__,
+            "cuda": torch.version.cuda or "cpu",
+            "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
         },
     )
 
@@ -148,42 +146,42 @@ def train_ultralytics(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
     log.info("=" * 60)
 
     train_kwargs = {
-        "data":         cfg.dataset_yaml,
-        "fraction":     cfg.fraction,
-        "epochs":       cfg.epochs,
-        "imgsz":        cfg.imgsz,
-        "batch":        cfg.batch_size,
-        "optimizer":    cfg.optimizer,
-        "lr0":          cfg.lr,
-        "lrf":          cfg.lrf,
+        "data": cfg.dataset_yaml,
+        "fraction": cfg.fraction,
+        "epochs": cfg.epochs,
+        "imgsz": cfg.imgsz,
+        "batch": cfg.batch_size,
+        "optimizer": cfg.optimizer,
+        "lr0": cfg.lr,
+        "lrf": cfg.lrf,
         "weight_decay": cfg.weight_decay,
-        "momentum":     cfg.momentum,
-        "warmup_epochs":cfg.warmup_epochs,
-        "mosaic":       cfg.mosaic,
-        "mixup":        cfg.mixup,
-        "degrees":      cfg.degrees,
-        "translate":    cfg.translate,
-        "scale":        cfg.scale,
-        "flipud":       cfg.flipud,
-        "fliplr":       cfg.fliplr,
-        "hsv_h":        cfg.hsv_h,
-        "hsv_s":        cfg.hsv_s,
-        "hsv_v":        cfg.hsv_v,
-        "device":       cfg.device,
-        "workers":      cfg.workers,
-        "patience":     cfg.patience,
-        "save":         True,
-        "save_period":  cfg.save_period,
-        "project":      cfg.output_dir,
-        "name":         f"{cfg.architecture}_{cfg.hp_combination}",
-        "exist_ok":     True,
-        "pretrained":   cfg.pretrained,
-        "verbose":      True,
-        "plots":        True,
-        "val":          True,
-        "amp":          cfg.amp,
-        "cache":        cfg.cache,
-        "seed":         cfg.seed,
+        "momentum": cfg.momentum,
+        "warmup_epochs": cfg.warmup_epochs,
+        "mosaic": cfg.mosaic,
+        "mixup": cfg.mixup,
+        "degrees": cfg.degrees,
+        "translate": cfg.translate,
+        "scale": cfg.scale,
+        "flipud": cfg.flipud,
+        "fliplr": cfg.fliplr,
+        "hsv_h": cfg.hsv_h,
+        "hsv_s": cfg.hsv_s,
+        "hsv_v": cfg.hsv_v,
+        "device": cfg.device,
+        "workers": cfg.workers,
+        "patience": cfg.patience,
+        "save": True,
+        "save_period": cfg.save_period,
+        "project": cfg.output_dir,
+        "name": f"{cfg.architecture}_{cfg.hp_combination}",
+        "exist_ok": True,
+        "pretrained": cfg.pretrained,
+        "verbose": True,
+        "plots": True,
+        "val": True,
+        "amp": cfg.amp,
+        "cache": cfg.cache,
+        "seed": cfg.seed,
     }
 
     results = model.train(**train_kwargs)
@@ -201,13 +199,12 @@ def train_ultralytics(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
     return metrics
 
 
-def train_rtdetr(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
+def train_rtdetr(cfg: TrainingConfig, run_id: str) -> dict[str, float]:
     """
     Train RT-DETR using the Ultralytics RT-DETR implementation.
     Ultralytics ≥ 8.1 supports RT-DETR natively with the same API.
     """
     from ultralytics import RTDETR  # noqa: PLC0415
-    from src.training.mlflow_callbacks import RTDETRMLflowLogger  # noqa: PLC0415
 
     model_weights = resolve_rtdetr_weights(cfg.model_name)
 
@@ -222,8 +219,8 @@ def train_rtdetr(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
         hp_combo=cfg.hp_combination,
         extra_params={
             "model_name": cfg.model_name,
-            "git_sha":    _get_git_sha(),
-            "torch":      torch.__version__,
+            "git_sha": _get_git_sha(),
+            "torch": torch.__version__,
         },
     )
 
@@ -270,11 +267,12 @@ def train_rtdetr(cfg: TrainingConfig, run_id: str) -> Dict[str, float]:
 # Post-training: log final test metrics to MLflow
 # ---------------------------------------------------------------------------
 
+
 def log_final_metrics(
-    run_id:    str,
-    metrics:   Dict[str, float],
-    save_dir:  Path,
-    cfg:       TrainingConfig,
+    run_id: str,
+    metrics: dict[str, float],
+    save_dir: Path,
+    cfg: TrainingConfig,
 ) -> None:
     """Log final training metrics and model size to the MLflow run."""
     with mlflow.start_run(run_id=run_id):
@@ -289,7 +287,7 @@ def log_final_metrics(
         # Model file size
         best_pt = save_dir / f"{cfg.architecture}_{cfg.hp_combination}" / "weights" / "best.pt"
         if best_pt.exists():
-            size_mb = best_pt.stat().st_size / (1024 ** 2)
+            size_mb = best_pt.stat().st_size / (1024**2)
             final["model_size_mb"] = round(size_mb, 2)
             log.info("Model size: %.1f MB", size_mb)
 
@@ -297,24 +295,30 @@ def log_final_metrics(
             mlflow.log_metrics(final)
 
         # Tag run as completed
-        mlflow.set_tags({
-            "status":   "completed",
-            "arch":     cfg.architecture,
-            "hp_combo": cfg.hp_combination,
-        })
+        mlflow.set_tags(
+            {
+                "status": "completed",
+                "arch": cfg.architecture,
+                "hp_combo": cfg.hp_combination,
+            }
+        )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_git_sha() -> str:
     """Return short git commit SHA, or 'unknown' if not in a repo."""
     import subprocess  # noqa: PLC0415
+
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return result.stdout.strip() or "unknown"
     except Exception:
@@ -329,6 +333,7 @@ def _build_run_name(cfg: TrainingConfig) -> str:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Train Anti-UAV detector with full MLflow tracking.",
@@ -336,17 +341,18 @@ def parse_args() -> argparse.Namespace:
         epilog=__doc__,
     )
     p.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         required=True,
         help="Path to YAML config file (e.g. configs/yolov11_hp2.yaml)",
     )
-    p.add_argument("--mlflow-uri",    default=None, help="MLflow tracking URI")
-    p.add_argument("--experiment",    default=None, help="MLflow experiment name (overrides config)")
-    p.add_argument("--run-name",      default=None, help="MLflow run name (overrides auto-generated)")
-    p.add_argument("--epochs",        type=int,  default=None, help="Override epochs from config")
-    p.add_argument("--batch",         type=int,  default=None, help="Override batch size from config")
-    p.add_argument("--device",        default=None, help="Override device (e.g. 0, cpu, mps)")
-    p.add_argument("--data",          default=None, help="Override dataset YAML path")
+    p.add_argument("--mlflow-uri", default=None, help="MLflow tracking URI")
+    p.add_argument("--experiment", default=None, help="MLflow experiment name (overrides config)")
+    p.add_argument("--run-name", default=None, help="MLflow run name (overrides auto-generated)")
+    p.add_argument("--epochs", type=int, default=None, help="Override epochs from config")
+    p.add_argument("--batch", type=int, default=None, help="Override batch size from config")
+    p.add_argument("--device", default=None, help="Override device (e.g. 0, cpu, mps)")
+    p.add_argument("--data", default=None, help="Override dataset YAML path")
     p.add_argument(
         "--fraction",
         type=float,
@@ -363,11 +369,16 @@ def main() -> None:
     cfg = load_config(Path(args.config))
 
     # Apply CLI overrides
-    if args.epochs  is not None: cfg.epochs      = args.epochs
-    if args.batch   is not None: cfg.batch_size  = args.batch
-    if args.device  is not None: cfg.device      = args.device
-    if args.data    is not None: cfg.dataset_yaml = args.data
-    if args.fraction is not None: cfg.fraction   = args.fraction
+    if args.epochs is not None:
+        cfg.epochs = args.epochs
+    if args.batch is not None:
+        cfg.batch_size = args.batch
+    if args.device is not None:
+        cfg.device = args.device
+    if args.data is not None:
+        cfg.dataset_yaml = args.data
+    if args.fraction is not None:
+        cfg.fraction = args.fraction
 
     # MLflow setup
     tracking_uri = args.mlflow_uri or os.environ.get(
@@ -382,7 +393,7 @@ def main() -> None:
         if p.exists() or (len(tracking_uri) >= 3 and tracking_uri[1:3] == ":\\"):
             tracking_uri = p.resolve().as_uri()
     experiment_name = args.experiment or cfg.experiment_name
-    run_name        = args.run_name   or _build_run_name(cfg)
+    run_name = args.run_name or _build_run_name(cfg)
 
     log.info("MLflow URI:    %s", tracking_uri)
     log.info("Experiment:    %s", experiment_name)
@@ -395,7 +406,7 @@ def main() -> None:
         tracking_uri=tracking_uri,
         tags={
             "architecture": cfg.architecture,
-            "hp_combo":     cfg.hp_combination,
+            "hp_combo": cfg.hp_combination,
         },
     )
 
@@ -409,7 +420,9 @@ def main() -> None:
         elif "yolo" in arch:
             metrics = train_ultralytics(cfg, run_id)
         else:
-            log.error("Unsupported architecture: %s. Choose from: %s", cfg.architecture, SUPPORTED_ARCHS)
+            log.error(
+                "Unsupported architecture: %s. Choose from: %s", cfg.architecture, SUPPORTED_ARCHS
+            )
             sys.exit(1)
 
         # Log final summary
