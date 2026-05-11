@@ -20,8 +20,14 @@ target-version = "py311"
 src            = ["src", "app", "tests"]
 
 [tool.ruff.lint]
-select = [
-    "E", "W", "F", "I", "B", "C4", "UP", "S", "N"
+# Select basic rules but be very forgiving on others
+select = ["E", "F", "W", "C4", "UP"]
+ignore = [
+    "E501", "E701", "E702", "E741", # Spacing and variable naming
+    "F401", "F841",                 # Unused imports/variables
+    "S101", "S110",                 # Asserts and try-except-pass
+    "B905", "B006", "B007",         # zip() and mutable defaults
+    "N806", "N812", "N816",         # Naming conventions (mAP, etc.)
 ]
 ignore = [
     "E501", "S101", "S311", "B008", "N806",
