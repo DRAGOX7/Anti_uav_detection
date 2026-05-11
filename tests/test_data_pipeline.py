@@ -73,18 +73,21 @@ def _make_synthetic_dataset(
 # Tests: download_dataset helpers
 # ---------------------------------------------------------------------------
 
+
 class TestLabelHelpers:
     """Tests for label-related utilities."""
 
     def test_is_positive_with_content(self, tmp_path):
         # REMOVED the underscore from _is_positive
         from src.data.split_data import is_positive
+
         lbl = tmp_path / "pos.txt"
         lbl.write_text("0 0.5 0.5 0.1 0.1\n")
         assert is_positive(lbl) is True
 
     def test_is_positive_empty_file(self, tmp_path):
         from src.data.split_data import is_positive
+
         lbl = tmp_path / "neg.txt"
         lbl.write_text("")
         assert is_positive(lbl) is False
@@ -94,6 +97,7 @@ class TestLabelHelpers:
     def test_count_images(self, tmp_path):
         # REMOVED the underscore from _count_images
         from src.data.download_dataset import count_images
+
         for name in ("a.jpg", "b.jpeg", "c.PNG", "d.txt", "e.mp4"):
             (tmp_path / name).write_text("x")
         assert count_images(tmp_path) == 3
@@ -101,6 +105,7 @@ class TestLabelHelpers:
     def test_count_labels(self, tmp_path):
         # REMOVED the underscore from _count_labels
         from src.data.download_dataset import count_labels
+
         for name in ("a.txt", "b.txt", "c.jpg"):
             (tmp_path / name).write_text("x")
         assert count_labels(tmp_path) == 2
@@ -351,6 +356,7 @@ class TestStratifiedSplit:
             assert 0.70 <= rate <= 0.90, (
                 f"Split '{split_name}' positive rate {rate:.2f} out of expected range"
             )
+
+
 @pytest.mark.skip(reason="Refactoring imports")
-def test_is_positive_with_content(self, tmp_path):
-    ...
+def test_is_positive_with_content(self, tmp_path): ...
