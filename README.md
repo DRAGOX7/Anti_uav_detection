@@ -26,7 +26,7 @@ Real-time detection, classification, and tracking of hostile UAVs (drones) in RG
 | **CI/CD**                  | GitHub Actions (lint → security → test → build → deploy) |
 
 ---
-##video
+## live video
 
 
 https://github.com/user-attachments/assets/f95b85e9-981c-4a73-9e6e-ff66ce48a900
