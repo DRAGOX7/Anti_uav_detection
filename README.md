@@ -115,7 +115,7 @@ docker-compose -f docker/docker-compose.yml up
 anti-uav-detection/
 │
 ├── notebooks/
-│   ├── 01_EDA_and_DataPrep.ipynb       ← Start here
+│   ├── 01_EDA_and_DataPrep.ipynb       
 │   ├── 02_Preprocessing.ipynb
 │   ├── 03_YOLOv11_Training.ipynb
 │   ├── 04_RTDETR_Training.ipynb
@@ -144,7 +144,7 @@ anti-uav-detection/
 │   ├── streamlit_app.py                Main app with sidebar navigation
 │   └── pages/
 │       ├── image_detection.py          Page 1: image upload + inference
-│       ├── video_tracking.py           Page 2: video + ByteTrack (+5 bonus)
+│       ├── video_tracking.py           Page 2: video + ByteTrack 
 │       ├── model_comparison.py         Page 3: side-by-side MLflow comparison
 │       └── mlflow_dashboard.py         Page 4: full experiment browser
 │
