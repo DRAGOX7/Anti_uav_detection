@@ -1,8 +1,4 @@
----
-title: Anti UAV Detection
-sdk: docker
-app_port: 8501
----
+
 
 # 🛡️ Anti-UAV Drone Detection & Tracking System
 
